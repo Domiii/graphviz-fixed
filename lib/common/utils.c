@@ -356,10 +356,7 @@ pointf dotneato_closest(splines * spl, pointf pt)
     for (size_t i = 0; i < spl->size; i++) {
 	bz = spl->list[i];
 	for (size_t j = 0; j < bz.size; j++) {
-	    pointf b;
-
-	    b.x = bz.list[j].x;
-	    b.y = bz.list[j].y;
+	    const pointf b = bz.list[j];
 	    d2 = DIST2(b, pt);
 	    if (bestj == SIZE_MAX || d2 < bestdist2) {
 		besti = i;
