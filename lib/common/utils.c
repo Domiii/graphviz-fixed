@@ -347,7 +347,7 @@ pointf dotneato_closest(splines * spl, pointf pt)
 {
     double d2, dlow2, dhigh2; /* squares of distances */
     double low, high, t;
-    pointf c[4], pt2;
+    pointf pt2;
     bezier bz;
 
     size_t besti = SIZE_MAX;
@@ -374,10 +374,8 @@ pointf dotneato_closest(splines * spl, pointf pt)
     if (bestj == bz.size-1)
 	bestj--;
     const size_t j = 3 * (bestj / 3);
-    for (size_t k = 0; k < 4; k++) {
-	c[k].x = bz.list[j + k].x;
-	c[k].y = bz.list[j + k].y;
-    }
+    const pointf c[] =
+      {bz.list[j], bz.list[j + 1], bz.list[j + 2], bz.list[j + 3]};
     low = 0.0;
     high = 1.0;
     dlow2 = DIST2(c[0], pt);
