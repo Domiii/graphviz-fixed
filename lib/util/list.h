@@ -256,6 +256,20 @@ static_assert(
 ///
 /// @param list List to operate on
 /// @param item Item to remove
+#ifdef TYPEOF
+#define LIST_REMOVE(list, item)                                                \
+  do {                                                                         \
+    const size_t found_ =                                                      \
+        gv_list_find_((list)->impl, (TYPEOF((list)->base[0])[1]){item},        \
+                      sizeof((list)->base[0]));                                \
+    if (found_ == SIZE_MAX) { /* not found */                                  \
+      break;                                                                   \
+    }                                                                          \
+                                                                               \
+    LIST_DTOR_((list), found_);                                                \
+    gv_list_remove_(&(list)->impl, found_, sizeof((list)->base[0]));           \
+  } while (0)
+#else
 #define LIST_REMOVE(list, item)                                                \
   do {                                                                         \
     /* get something we can take the address of */                             \
@@ -270,6 +284,7 @@ static_assert(
     LIST_DTOR_((list), found_);                                                \
     gv_list_remove_(&(list)->impl, found_, sizeof((list)->base[0]));           \
   } while (0)
+#endif
 
 /// remove all items from a list
 ///
