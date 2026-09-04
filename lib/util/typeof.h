@@ -9,7 +9,7 @@
 
 #pragma once
 
-#ifdef __GNUC__ // Clang or GCC
+#if defined(__GNUC__) || defined(_MSC_VER) // Clang, GCC, MSVC
 #define TYPEOF(expr) __typeof__(expr)
 #else
 // no typeof support
