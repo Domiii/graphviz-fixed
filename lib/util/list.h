@@ -128,6 +128,15 @@ static_assert(
 ///
 /// @param list List to operate on
 /// @param ... Element to append
+#ifdef TYPEOF
+#define LIST_APPEND(list, ...)                                                 \
+  do {                                                                         \
+    TYPEOF((list)->base[0]) scratch_ = (__VA_ARGS__);                          \
+    const size_t slot_ =                                                       \
+        gv_list_append_slot_(&(list)->impl, sizeof((list)->base[0]));          \
+    (list)->base[slot_] = scratch_;                                            \
+  } while (0)
+#else
 #define LIST_APPEND(list, ...)                                                 \
   do {                                                                         \
     (list)->scratch = (__VA_ARGS__);                                           \
@@ -135,6 +144,7 @@ static_assert(
         gv_list_append_slot_(&(list)->impl, sizeof((list)->base[0]));          \
     (list)->base[slot_] = (list)->scratch;                                     \
   } while (0)
+#endif
 
 /// add an item to the beginning of a list
 ///
