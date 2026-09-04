@@ -447,10 +447,17 @@ static_assert(
 ///
 /// @param list List to operate on
 /// @return Popped item
+#ifdef TYPEOF
+#define LIST_POP_BACK(list)                                                    \
+  (*(TYPEOF((list)->base))gv_list_pop_back_(&(list)->impl,                     \
+                                            (TYPEOF((list)->base[0])[1]){0},   \
+                                            sizeof((list)->base[0])))
+#else
 #define LIST_POP_BACK(list)                                                    \
   ((void)gv_list_pop_back_(&(list)->impl, &(list)->scratch,                    \
                            sizeof((list)->base[0])),                           \
    (list)->scratch)
+#endif
 
 /// remove the last item of a list
 ///
