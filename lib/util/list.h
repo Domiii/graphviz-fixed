@@ -38,6 +38,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <util/list-private.h>
+#include <util/typeof.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -98,10 +99,16 @@ static_assert(
 /// @param list List to operate on
 /// @param item Item to append
 /// @return True if the append succeeded
+#ifdef TYPEOF
+#define LIST_TRY_APPEND(list, item)                                            \
+  gv_list_try_append_(&(list)->impl, (TYPEOF((list)->base[0])[1]){item},       \
+                      sizeof((list)->base[0]))
+#else
 #define LIST_TRY_APPEND(list, item)                                            \
   gv_list_try_append_(&(list)->impl,                                           \
                       ((list)->scratch = (item), &(list)->scratch),            \
                       sizeof((list)->base[0]))
+#endif
 
 /// add an item to the end of a list
 ///
