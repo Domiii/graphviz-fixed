@@ -424,7 +424,7 @@ void *gv_list_pop_front_(list_t_ *list, void *into, size_t item_size) {
   return into;
 }
 
-void gv_list_pop_back_(list_t_ *list, void *into, size_t item_size) {
+void *gv_list_pop_back_(list_t_ *list, void *into, size_t item_size) {
   assert(list != NULL);
   assert(list->size > 0);
   assert(into != NULL);
@@ -437,6 +437,8 @@ void gv_list_pop_back_(list_t_ *list, void *into, size_t item_size) {
   }
   ASAN_POISON(to_pop, item_size);
   --list->size;
+
+  return into;
 }
 
 void gv_list_detach_(list_t_ *list, void *datap, size_t *sizep,

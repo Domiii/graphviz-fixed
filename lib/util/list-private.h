@@ -201,7 +201,8 @@ UTIL_API void *gv_list_pop_front_(list_t_ *list, void *into, size_t item_size);
 /// @param list List to operate on
 /// @param [out] into Destination to pop the item into
 /// @param item_size Byte size of each list item
-UTIL_API void gv_list_pop_back_(list_t_ *list, void *into, size_t item_size);
+/// @return `into`
+UTIL_API void *gv_list_pop_back_(list_t_ *list, void *into, size_t item_size);
 
 /// transform a managed list into a bare array
 ///

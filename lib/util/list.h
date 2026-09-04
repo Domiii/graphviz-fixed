@@ -448,8 +448,8 @@ static_assert(
 /// @param list List to operate on
 /// @return Popped item
 #define LIST_POP_BACK(list)                                                    \
-  (gv_list_pop_back_(&(list)->impl, &(list)->scratch,                          \
-                     sizeof((list)->base[0])),                                 \
+  ((void)gv_list_pop_back_(&(list)->impl, &(list)->scratch,                    \
+                           sizeof((list)->base[0])),                           \
    (list)->scratch)
 
 /// remove the last item of a list
@@ -466,8 +466,8 @@ static_assert(
   do {                                                                         \
     const size_t slot_ = gv_list_get_((list)->impl, LIST_SIZE(list) - 1);      \
     LIST_DTOR_((list), slot_);                                                 \
-    gv_list_pop_back_(&(list)->impl, (char[sizeof((list)->base[0])]){0},       \
-                      sizeof((list)->base[0]));                                \
+    (void)gv_list_pop_back_(&(list)->impl, (char[sizeof((list)->base[0])]){0}, \
+                            sizeof((list)->base[0]));                          \
   } while (0)
 
 /// transform a managed list into a bare array
