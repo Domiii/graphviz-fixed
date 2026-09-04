@@ -428,8 +428,8 @@ static_assert(
 /// @param list List to operate on
 /// @return Popped item
 #define LIST_POP_FRONT(list)                                                   \
-  (gv_list_pop_front_(&(list)->impl, &(list)->scratch,                         \
-                      sizeof((list)->base[0])),                                \
+  ((void)gv_list_pop_front_(&(list)->impl, &(list)->scratch,                   \
+                            sizeof((list)->base[0])),                          \
    (list)->scratch)
 
 /// remove and return the last item of a list

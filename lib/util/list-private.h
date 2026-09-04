@@ -193,7 +193,8 @@ UTIL_API void gv_list_free_(list_t_ *list);
 /// @param list List to operate on
 /// @param [out] into Destination to pop the item into
 /// @param item_size Byte size of each list item
-UTIL_API void gv_list_pop_front_(list_t_ *list, void *into, size_t item_size);
+/// @return `into`
+UTIL_API void *gv_list_pop_front_(list_t_ *list, void *into, size_t item_size);
 
 /// remove and return the last item of a list
 ///

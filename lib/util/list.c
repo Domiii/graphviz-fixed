@@ -406,7 +406,7 @@ void gv_list_free_(list_t_ *list) {
   *list = (list_t_){0};
 }
 
-void gv_list_pop_front_(list_t_ *list, void *into, size_t item_size) {
+void *gv_list_pop_front_(list_t_ *list, void *into, size_t item_size) {
   assert(list != NULL);
   assert(list->size > 0);
   assert(into != NULL);
@@ -420,6 +420,8 @@ void gv_list_pop_front_(list_t_ *list, void *into, size_t item_size) {
   ASAN_POISON(to_pop, item_size);
   list->head = (list->head + 1) % list->capacity;
   --list->size;
+
+  return into;
 }
 
 void gv_list_pop_back_(list_t_ *list, void *into, size_t item_size) {
