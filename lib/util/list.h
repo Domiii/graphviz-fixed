@@ -156,6 +156,15 @@ static_assert(
 ///
 /// @param list List to operate on
 /// @param item Element to prepend
+#ifdef TYPEOF
+#define LIST_PREPEND(list, item)                                               \
+  do {                                                                         \
+    TYPEOF((list)->base[0]) scratch_ = (item);                                 \
+    const size_t slot_ =                                                       \
+        gv_list_prepend_slot_(&(list)->impl, sizeof((list)->base[0]));         \
+    (list)->base[slot_] = scratch_;                                            \
+  } while (0)
+#else
 #define LIST_PREPEND(list, item)                                               \
   do {                                                                         \
     (list)->scratch = (item);                                                  \
@@ -163,6 +172,7 @@ static_assert(
         gv_list_prepend_slot_(&(list)->impl, sizeof((list)->base[0]));         \
     (list)->base[slot_] = (list)->scratch;                                     \
   } while (0)
+#endif
 
 /// retrieve an item from a list
 ///
