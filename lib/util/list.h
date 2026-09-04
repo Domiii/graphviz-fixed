@@ -53,6 +53,16 @@ static_assert(
 /// Typical usage:
 ///
 ///   LIST(int) my_int_list = {0};
+#ifdef TYPEOF
+#define LIST(type)                                                             \
+  struct {                                                                     \
+    union {                                                                    \
+      type *base;                                                              \
+      list_t_ impl;                                                            \
+    }; /**< backing storage */                                                 \
+    void (*dtor)(type); /**< optional destructor */                            \
+  }
+#else
 #define LIST(type)                                                             \
   struct {                                                                     \
     union {                                                                    \
@@ -62,6 +72,7 @@ static_assert(
     void (*dtor)(type); /**< optional destructor */                            \
     type scratch;       /**< temporary space for storing off-list items */     \
   }
+#endif
 
 /// sentinel value to indicate you want `free` to be used as a list destructor
 ///
