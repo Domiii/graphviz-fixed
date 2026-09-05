@@ -6476,6 +6476,30 @@ def test_2778():
             raise
 
 
+@pytest.mark.xfail(
+    raises=subprocess.CalledProcessError,
+    reason="https://gitlab.com/graphviz/graphviz/-/issues/2781",
+    strict=which("dot") is not None and is_asan_instrumented(which("dot")),
+)
+def test_2781():
+    """
+    Graphviz should not crash when processing this graph
+    https://gitlab.com/graphviz/graphviz/-/issues/2781
+    """
+
+    # locate our associated test case in this directory
+    src = Path(__file__).parent / "2781.dot"
+    assert src.exists(), "unexpectedly missing test case"
+
+    # run this through Graphviz
+    try:
+        dot("dot", src)
+    except subprocess.CalledProcessError as e:
+        # only fail if we crashed, not exited with failure
+        if e.returncode != 1:
+            raise
+
+
 def test_2782():
     """
     Graphviz should not crash when processing this graph
