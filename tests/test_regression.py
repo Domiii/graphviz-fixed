@@ -6382,14 +6382,15 @@ def test_2769(variant: str):
     reason="https://gitlab.com/graphviz/graphviz/-/issues/2773",
     strict=which("dot") is not None and is_asan_instrumented(which("dot")),
 )
-def test_2773():
+@pytest.mark.parametrize("variant", ("2773.dot", "2773_1.dot"))
+def test_2773(variant: str):
     """
     Graphviz should not crash when processing this graph
     https://gitlab.com/graphviz/graphviz/-/issues/2773
     """
 
     # locate our associated test case in this directory
-    src = Path(__file__).parent / "2773.dot"
+    src = Path(__file__).parent / variant
     assert src.exists(), "unexpectedly missing test case"
 
     # run this through Graphviz
