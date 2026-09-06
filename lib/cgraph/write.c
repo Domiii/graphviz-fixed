@@ -279,25 +279,32 @@ static int write_dict(Agraph_t *g, iochan_t *ofile, char *name, Dict_t *dict,
         continue; /* also empty in parent */
     }
     if (cnt++ == 0) {
-      CHKRV(indent(g, ofile, *wr_info));
-      CHKRV(ioput(g, ofile, name));
-      CHKRV(ioput(g, ofile, " ["));
+      if (indent(g, ofile, *wr_info) == EOF || ioput(g, ofile, name) == EOF ||
+          ioput(g, ofile, " [") == EOF) {
+        return EOF;
+      }
       wr_info->level++;
     } else {
-      CHKRV(ioput(g, ofile, ",\n"));
-      CHKRV(indent(g, ofile, *wr_info));
+      if (ioput(g, ofile, ",\n") == EOF || indent(g, ofile, *wr_info) == EOF) {
+        return EOF;
+      }
     }
-    CHKRV(write_canonstr(g, ofile, sym->name, true));
-    CHKRV(ioput(g, ofile, "="));
-    CHKRV(write_canonstr(g, ofile, sym->defval, true));
+    if (write_canonstr(g, ofile, sym->name, true) == EOF ||
+        ioput(g, ofile, "=") == EOF ||
+        write_canonstr(g, ofile, sym->defval, true) == EOF) {
+      return EOF;
+    }
   }
   if (cnt > 0) {
     wr_info->level--;
     if (cnt > 1) {
-      CHKRV(ioput(g, ofile, "\n"));
-      CHKRV(indent(g, ofile, *wr_info));
+      if (ioput(g, ofile, "\n") == EOF || indent(g, ofile, *wr_info) == EOF) {
+        return EOF;
+      }
     }
-    CHKRV(ioput(g, ofile, "];\n"));
+    if (ioput(g, ofile, "];\n") == EOF) {
+      return EOF;
+    }
   }
   if (!top)
     dtview(dict, view); /* restore previous view */
