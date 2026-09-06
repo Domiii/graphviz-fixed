@@ -668,7 +668,9 @@ static int write_edges(iochan_t *ofile, Dict_t *d, write_info_t *wr_info) {
     if (wr_info->edges[i] == NULL) {
       continue;
     }
-    CHKRV(write_edge(wr_info->edges[i], ofile, d, wr_info));
+    if (write_edge(wr_info->edges[i], ofile, d, wr_info) == EOF) {
+      return EOF;
+    }
 
     // blank the entry so it can be reused by sibling subgraphs
     wr_info->edges[i] = NULL;
