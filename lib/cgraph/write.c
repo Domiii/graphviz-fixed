@@ -31,11 +31,6 @@
 #include <util/strcasecmp.h>
 
 #define EMPTY(s) (((s) == 0) || (s)[0] == '\0')
-#define CHKRV(v)                                                               \
-  {                                                                            \
-    if ((v) == EOF)                                                            \
-      return EOF;                                                              \
-  }
 
 typedef void iochan_t;
 
@@ -683,15 +678,23 @@ static int write_body(Agraph_t *g, iochan_t *ofile, write_info_t *wr_info) {
   Agedge_t *e;
   Agdatadict_t *dd;
 
-  CHKRV(write_subgs(g, ofile, wr_info));
+  if (write_subgs(g, ofile, wr_info) == EOF) {
+    return EOF;
+  }
   dd = agdatadict(g, false);
   for (n = agfstnode(g); n; n = agnxtnode(g, n)) {
-    if (write_node_test(g, n, wr_info))
-      CHKRV(write_node(g, n, ofile, dd ? dd->dict.n : 0, wr_info));
+    if (write_node_test(g, n, wr_info)) {
+      if (write_node(g, n, ofile, dd ? dd->dict.n : 0, wr_info) == EOF) {
+        return EOF;
+      }
+    }
     prev = n;
     for (e = agfstout(g, n); e; e = agnxtout(g, e)) {
       if (prev != aghead(e) && write_node_test(g, aghead(e), wr_info)) {
-        CHKRV(write_node(g, aghead(e), ofile, dd ? dd->dict.n : 0, wr_info));
+        if (write_node(g, aghead(e), ofile, dd ? dd->dict.n : 0, wr_info) ==
+            EOF) {
+          return EOF;
+        }
         prev = aghead(e);
       }
       // pend this edge to be emitted later
@@ -699,7 +702,9 @@ static int write_body(Agraph_t *g, iochan_t *ofile, write_info_t *wr_info) {
     }
   }
   // flush pending edges to the output file
-  CHKRV(write_edges(ofile, dd ? dd->dict.e : NULL, wr_info));
+  if (write_edges(ofile, dd ? dd->dict.e : NULL, wr_info) == EOF) {
+    return EOF;
+  }
   return 0;
 }
 
