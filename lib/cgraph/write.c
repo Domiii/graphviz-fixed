@@ -566,10 +566,14 @@ static int write_node(Agraph_t *subg, Agnode_t *n, iochan_t *ofile, Dict_t *d,
   Agraph_t *g;
 
   g = agraphof(n);
-  CHKRV(indent(g, ofile, *wr_info));
-  CHKRV(write_nodename(n, ofile));
-  if (!attrs_written(n))
-    CHKRV(write_nondefault_attrs(n, ofile, d, wr_info));
+  if (indent(g, ofile, *wr_info) == EOF || write_nodename(n, ofile) == EOF) {
+    return EOF;
+  }
+  if (!attrs_written(n)) {
+    if (write_nondefault_attrs(n, ofile, d, wr_info) == EOF) {
+      return EOF;
+    }
+  }
   wr_info->node_last_written[AGSEQ(n)] = wr_info->preorder_number[AGSEQ(subg)];
   return ioput(g, ofile, ";\n");
 }
