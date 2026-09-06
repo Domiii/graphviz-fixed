@@ -346,20 +346,28 @@ static int write_hdr(Agraph_t *g, iochan_t *ofile, bool top,
     sep = name = "";
     hasName = false;
   }
-  CHKRV(indent(g, ofile, *wr_info));
-  CHKRV(ioput(g, ofile, strict));
+  if (indent(g, ofile, *wr_info) == EOF || ioput(g, ofile, strict) == EOF) {
+    return EOF;
+  }
 
   /* output "<kind>graph" only for root graphs or graphs with names */
   if (root || hasName) {
-    CHKRV(ioput(g, ofile, kind));
-    CHKRV(ioput(g, ofile, "graph "));
+    if (ioput(g, ofile, kind) == EOF || ioput(g, ofile, "graph ") == EOF) {
+      return EOF;
+    }
   }
-  if (hasName)
-    CHKRV(write_canonstr(g, ofile, name, false));
-  CHKRV(ioput(g, ofile, sep));
-  CHKRV(ioput(g, ofile, "{\n"));
+  if (hasName) {
+    if (write_canonstr(g, ofile, name, false) == EOF) {
+      return EOF;
+    }
+  }
+  if (ioput(g, ofile, sep) == EOF || ioput(g, ofile, "{\n") == EOF) {
+    return EOF;
+  }
   wr_info->level++;
-  CHKRV(write_dicts(g, ofile, top, wr_info));
+  if (write_dicts(g, ofile, top, wr_info) == EOF) {
+    return EOF;
+  }
   AGATTRWF(g) = true;
   return 0;
 }
