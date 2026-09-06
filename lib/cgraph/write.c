@@ -261,13 +261,9 @@ static int write_canonstr(Agraph_t *g, iochan_t *ofile, char *str, bool known) {
 static int write_dict(Agraph_t *g, iochan_t *ofile, char *name, Dict_t *dict,
                       bool top, write_info_t *wr_info) {
   int cnt = 0;
-  Dict_t *view;
   Agsym_t *sym, *psym;
 
-  if (!top)
-    view = dtview(dict, NULL);
-  else
-    view = 0;
+  Dict_t *const view = !top ? dtview(dict, NULL) : NULL;
   for (sym = dtfirst(dict); sym; sym = dtnext(dict, sym)) {
     if (EMPTY(sym->defval) &&
         !sym->print) { /* try to skip empty str (default) */
