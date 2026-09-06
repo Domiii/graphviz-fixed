@@ -311,9 +311,11 @@ static int write_dicts(Agraph_t *g, iochan_t *ofile, bool top,
                        write_info_t *wr_info) {
   Agdatadict_t *def;
   if ((def = agdatadict(g, false))) {
-    CHKRV(write_dict(g, ofile, "graph", def->dict.g, top, wr_info));
-    CHKRV(write_dict(g, ofile, "node", def->dict.n, top, wr_info));
-    CHKRV(write_dict(g, ofile, "edge", def->dict.e, top, wr_info));
+    if (write_dict(g, ofile, "graph", def->dict.g, top, wr_info) == EOF ||
+        write_dict(g, ofile, "node", def->dict.n, top, wr_info) == EOF ||
+        write_dict(g, ofile, "edge", def->dict.e, top, wr_info) == EOF) {
+      return EOF;
+    }
   }
   return 0;
 }
