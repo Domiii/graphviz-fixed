@@ -638,16 +638,21 @@ static int write_edge(Agedge_t *e, iochan_t *ofile, Dict_t *d,
   t = AGTAIL(e);
   h = AGHEAD(e);
   g = agraphof(t);
-  CHKRV(indent(g, ofile, *wr_info));
-  CHKRV(write_nodename(t, ofile));
-  CHKRV(write_port(e, ofile, Tailport));
-  CHKRV(ioput(g, ofile, (agisdirected(agraphof(t)) ? " -> " : " -- ")));
-  CHKRV(write_nodename(h, ofile));
-  CHKRV(write_port(e, ofile, Headport));
+  if (indent(g, ofile, *wr_info) == EOF || write_nodename(t, ofile) == EOF ||
+      write_port(e, ofile, Tailport) == EOF ||
+      ioput(g, ofile, (agisdirected(agraphof(t)) ? " -> " : " -- ")) == EOF ||
+      write_nodename(h, ofile) == EOF ||
+      write_port(e, ofile, Headport) == EOF) {
+    return EOF;
+  }
   if (!attrs_written(e)) {
-    CHKRV(write_nondefault_attrs(e, ofile, d, wr_info));
+    if (write_nondefault_attrs(e, ofile, d, wr_info) == EOF) {
+      return EOF;
+    }
   } else {
-    CHKRV(write_edge_name(e, ofile, true, wr_info));
+    if (write_edge_name(e, ofile, true, wr_info) == EOF) {
+      return EOF;
+    }
   }
   return ioput(g, ofile, ";\n");
 }
