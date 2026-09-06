@@ -490,10 +490,9 @@ static int write_nondefault_attrs(void *obj, iochan_t *ofile, Dict_t *defdict,
   Agsym_t *sym;
   Agraph_t *g;
   int cnt = 0;
-  int rv;
 
   if (AGTYPE(obj) == AGINEDGE || AGTYPE(obj) == AGOUTEDGE) {
-    rv = write_edge_name(obj, ofile, false, wr_info);
+    const int rv = write_edge_name(obj, ofile, false, wr_info);
     if (rv == EOF) {
       return EOF;
     }
