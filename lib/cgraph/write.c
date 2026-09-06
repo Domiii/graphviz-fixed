@@ -374,8 +374,9 @@ static int write_hdr(Agraph_t *g, iochan_t *ofile, bool top,
 
 static int write_trl(Agraph_t *g, iochan_t *ofile, write_info_t *wr_info) {
   wr_info->level--;
-  CHKRV(indent(g, ofile, *wr_info));
-  CHKRV(ioput(g, ofile, "}\n"));
+  if (indent(g, ofile, *wr_info) == EOF || ioput(g, ofile, "}\n") == EOF) {
+    return EOF;
+  }
   return 0;
 }
 
