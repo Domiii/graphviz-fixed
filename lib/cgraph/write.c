@@ -604,19 +604,27 @@ static int write_port(Agedge_t *e, iochan_t *ofile, Agsym_t *port) {
   if (val[0] == '\0')
     return 0;
 
-  CHKRV(ioput(g, ofile, ":"));
+  if (ioput(g, ofile, ":") == EOF) {
+    return EOF;
+  }
   if (aghtmlstr(val)) {
-    CHKRV(write_canonstr(g, ofile, val, true));
+    if (write_canonstr(g, ofile, val, true) == EOF) {
+      return EOF;
+    }
   } else {
     char *s = strchr(val, ':');
     if (s) {
       *s = '\0';
-      CHKRV(_write_canonstr(g, ofile, val, false));
-      CHKRV(ioput(g, ofile, ":"));
-      CHKRV(_write_canonstr(g, ofile, s + 1, false));
+      if (_write_canonstr(g, ofile, val, false) == EOF ||
+          ioput(g, ofile, ":") == EOF ||
+          _write_canonstr(g, ofile, s + 1, false) == EOF) {
+        return EOF;
+      }
       *s = ':';
     } else {
-      CHKRV(_write_canonstr(g, ofile, val, false));
+      if (_write_canonstr(g, ofile, val, false) == EOF) {
+        return EOF;
+      }
     }
   }
   return 0;
