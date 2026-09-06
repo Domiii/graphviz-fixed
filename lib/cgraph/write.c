@@ -111,7 +111,7 @@ static bool is_escape(const char *str) {
 /* Canonicalize ordinary strings.
  * Assumes buf is large enough to hold output.
  */
-static char *_agstrcanon(char *arg, char *buf) {
+static char *agstrcanon_(char *arg, char *buf) {
   char *s, *p;
   char uc;
   int cnt = 0, dotcnt = 0;
@@ -215,7 +215,7 @@ char *agstrcanon(char *arg, char *buf) {
   if (aghtmlstr(arg))
     return agcanonhtmlstr(arg, buf);
   else
-    return _agstrcanon(arg, buf);
+    return agstrcanon_(arg, buf);
 }
 
 static int write_canonstr_(Agraph_t *g, iochan_t *ofile, char *str, bool chk) {
@@ -230,7 +230,7 @@ static int write_canonstr_(Agraph_t *g, iochan_t *ofile, char *str, bool chk) {
   }
 
   char *const canonicalized =
-      chk ? agstrcanon(str, scratch) : _agstrcanon(str, scratch);
+      chk ? agstrcanon(str, scratch) : agstrcanon_(str, scratch);
   const int rc = ioput(g, ofile, canonicalized);
   free(scratch);
   return rc;
