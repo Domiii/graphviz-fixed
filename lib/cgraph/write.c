@@ -657,6 +657,12 @@ static int write_edge(Agedge_t *e, iochan_t *ofile, Dict_t *d,
   return ioput(g, ofile, ";\n");
 }
 
+/// write out all the edges pending in `wr_info->edges`
+///
+/// @param ofile Channel to write output to
+/// @param d Attribute defaults
+/// @param wr_info State for traversal
+/// @return 0 on success
 static int write_edges(iochan_t *ofile, Dict_t *d, write_info_t *wr_info) {
   for (size_t i = 0; i < wr_info->n_edges; ++i) {
     if (wr_info->edges[i] == NULL) {
