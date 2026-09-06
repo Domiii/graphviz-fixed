@@ -449,9 +449,11 @@ static int write_subgs(Agraph_t *g, iochan_t *ofile, write_info_t *wr_info) {
     if (irrelevant_subgraph(subg)) {
       write_subgs(subg, ofile, wr_info);
     } else {
-      CHKRV(write_hdr(subg, ofile, false, wr_info));
-      CHKRV(write_body(subg, ofile, wr_info));
-      CHKRV(write_trl(subg, ofile, wr_info));
+      if (write_hdr(subg, ofile, false, wr_info) == EOF ||
+          write_body(subg, ofile, wr_info) == EOF ||
+          write_trl(subg, ofile, wr_info) == EOF) {
+        return EOF;
+      }
     }
   }
   return 0;
