@@ -493,7 +493,10 @@ static int write_nondefault_attrs(void *obj, iochan_t *ofile, Dict_t *defdict,
   int rv;
 
   if (AGTYPE(obj) == AGINEDGE || AGTYPE(obj) == AGOUTEDGE) {
-    CHKRV(rv = write_edge_name(obj, ofile, false, wr_info));
+    rv = write_edge_name(obj, ofile, false, wr_info);
+    if (rv == EOF) {
+      return EOF;
+    }
     if (rv)
       cnt++;
   }
@@ -509,19 +512,27 @@ static int write_nondefault_attrs(void *obj, iochan_t *ofile, Dict_t *defdict,
       }
       if (data->str[sym->id] != sym->defval) {
         if (cnt++ == 0) {
-          CHKRV(ioput(g, ofile, "\t["));
+          if (ioput(g, ofile, "\t[") == EOF) {
+            return EOF;
+          }
           wr_info->level++;
         } else {
-          CHKRV(ioput(g, ofile, ",\n"));
-          CHKRV(indent(g, ofile, *wr_info));
+          if (ioput(g, ofile, ",\n") == EOF ||
+              indent(g, ofile, *wr_info) == EOF) {
+            return EOF;
+          }
         }
-        CHKRV(write_canonstr(g, ofile, sym->name, true));
-        CHKRV(ioput(g, ofile, "="));
-        CHKRV(write_canonstr(g, ofile, data->str[sym->id], true));
+        if (write_canonstr(g, ofile, sym->name, true) == EOF ||
+            ioput(g, ofile, "=") == EOF ||
+            write_canonstr(g, ofile, data->str[sym->id], true) == EOF) {
+          return EOF;
+        }
       }
     }
   if (cnt > 0) {
-    CHKRV(ioput(g, ofile, "]"));
+    if (ioput(g, ofile, "]") == EOF) {
+      return EOF;
+    }
     wr_info->level--;
   }
   AGATTRWF(obj) = true;
