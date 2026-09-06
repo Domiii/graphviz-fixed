@@ -64,8 +64,11 @@ static void after_write(write_info_t);
 
 static int indent(Agraph_t *g, iochan_t *ofile, const write_info_t wr_info) {
   int i;
-  for (i = wr_info.level; i > 0; i--)
-    CHKRV(ioput(g, ofile, "\t"));
+  for (i = wr_info.level; i > 0; i--) {
+    if (ioput(g, ofile, "\t") == EOF) {
+      return EOF;
+    }
+  }
   return 0;
 }
 
