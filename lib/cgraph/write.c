@@ -223,7 +223,7 @@ char *agstrcanon(char *arg, char *buf) {
     return _agstrcanon(arg, buf);
 }
 
-static int _write_canonstr(Agraph_t *g, iochan_t *ofile, char *str, bool chk) {
+static int write_canonstr_(Agraph_t *g, iochan_t *ofile, char *str, bool chk) {
 
   // maximum bytes required for canonicalized string
   const size_t required = agstrcanon_bytes(str);
@@ -250,7 +250,7 @@ static int write_canonstr(Agraph_t *g, iochan_t *ofile, char *str, bool known) {
    */
   s = known ? str : agstrdup(g, str);
 
-  int r = _write_canonstr(g, ofile, s, true);
+  int r = write_canonstr_(g, ofile, s, true);
 
   if (!known) {
     agstrfree(g, s, false);
@@ -615,14 +615,14 @@ static int write_port(Agedge_t *e, iochan_t *ofile, Agsym_t *port) {
     char *s = strchr(val, ':');
     if (s) {
       *s = '\0';
-      if (_write_canonstr(g, ofile, val, false) == EOF ||
+      if (write_canonstr_(g, ofile, val, false) == EOF ||
           ioput(g, ofile, ":") == EOF ||
-          _write_canonstr(g, ofile, s + 1, false) == EOF) {
+          write_canonstr_(g, ofile, s + 1, false) == EOF) {
         return EOF;
       }
       *s = ':';
     } else {
-      if (_write_canonstr(g, ofile, val, false) == EOF) {
+      if (write_canonstr_(g, ofile, val, false) == EOF) {
         return EOF;
       }
     }
