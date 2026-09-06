@@ -545,12 +545,16 @@ static int write_nodename(Agnode_t *n, iochan_t *ofile) {
   name = agnameof(n);
   g = agraphof(n);
   if (name) {
-    CHKRV(write_canonstr(g, ofile, name, false));
+    if (write_canonstr(g, ofile, name, false) == EOF) {
+      return EOF;
+    }
   } else {
     char buf[sizeof("__SUSPECT") + 20];
     snprintf(buf, sizeof(buf), "_%" PRIu64 "_SUSPECT",
              AGID(n)); /* could be deadly wrong */
-    CHKRV(ioput(g, ofile, buf));
+    if (ioput(g, ofile, buf) == EOF) {
+      return EOF;
+    }
   }
   return 0;
 }
