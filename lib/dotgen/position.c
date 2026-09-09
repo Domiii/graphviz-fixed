@@ -342,7 +342,7 @@ static WUR int make_LR_constraints(graph_t *g) {
 /// make virtual edge pairs corresponding to input edges
 ///
 /// @return 0 on success
-static int make_edge_pairs(graph_t *g) {
+static WUR int make_edge_pairs(graph_t *g) {
     int i, m0, m1;
     node_t *n, *sn;
     edge_t *e;
