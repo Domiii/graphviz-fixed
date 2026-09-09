@@ -30,6 +30,7 @@ noinst_HEADERS = \
   streq.h \
   strview.h \
   tokenize.h \
+  typeof.h \
   unreachable.h \
   unused.h \
   xml.h

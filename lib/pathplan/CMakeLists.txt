@@ -61,6 +61,6 @@ endif()
 
 # Specify library version and soversion
 set_target_properties(pathplan PROPERTIES
-  VERSION 4.0.9
+  VERSION 4.0.10
   SOVERSION 4
 )

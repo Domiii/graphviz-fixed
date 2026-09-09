@@ -38,6 +38,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <util/list-private.h>
+#include <util/typeof.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -52,6 +53,16 @@ static_assert(
 /// Typical usage:
 ///
 ///   LIST(int) my_int_list = {0};
+#ifdef TYPEOF
+#define LIST(type)                                                             \
+  struct {                                                                     \
+    union {                                                                    \
+      type *base;                                                              \
+      list_t_ impl;                                                            \
+    }; /**< backing storage */                                                 \
+    void (*dtor)(type); /**< optional destructor */                            \
+  }
+#else
 #define LIST(type)                                                             \
   struct {                                                                     \
     union {                                                                    \
@@ -61,6 +72,7 @@ static_assert(
     void (*dtor)(type); /**< optional destructor */                            \
     type scratch;       /**< temporary space for storing off-list items */     \
   }
+#endif
 
 /// sentinel value to indicate you want `free` to be used as a list destructor
 ///
@@ -98,10 +110,16 @@ static_assert(
 /// @param list List to operate on
 /// @param item Item to append
 /// @return True if the append succeeded
+#ifdef TYPEOF
+#define LIST_TRY_APPEND(list, item)                                            \
+  gv_list_try_append_(&(list)->impl, (TYPEOF((list)->base[0])[1]){item},       \
+                      sizeof((list)->base[0]))
+#else
 #define LIST_TRY_APPEND(list, item)                                            \
   gv_list_try_append_(&(list)->impl,                                           \
                       ((list)->scratch = (item), &(list)->scratch),            \
                       sizeof((list)->base[0]))
+#endif
 
 /// add an item to the end of a list
 ///
@@ -121,6 +139,15 @@ static_assert(
 ///
 /// @param list List to operate on
 /// @param ... Element to append
+#ifdef TYPEOF
+#define LIST_APPEND(list, ...)                                                 \
+  do {                                                                         \
+    TYPEOF((list)->base[0]) scratch_ = (__VA_ARGS__);                          \
+    const size_t slot_ =                                                       \
+        gv_list_append_slot_(&(list)->impl, sizeof((list)->base[0]));          \
+    (list)->base[slot_] = scratch_;                                            \
+  } while (0)
+#else
 #define LIST_APPEND(list, ...)                                                 \
   do {                                                                         \
     (list)->scratch = (__VA_ARGS__);                                           \
@@ -128,6 +155,7 @@ static_assert(
         gv_list_append_slot_(&(list)->impl, sizeof((list)->base[0]));          \
     (list)->base[slot_] = (list)->scratch;                                     \
   } while (0)
+#endif
 
 /// add an item to the beginning of a list
 ///
@@ -139,6 +167,15 @@ static_assert(
 ///
 /// @param list List to operate on
 /// @param item Element to prepend
+#ifdef TYPEOF
+#define LIST_PREPEND(list, item)                                               \
+  do {                                                                         \
+    TYPEOF((list)->base[0]) scratch_ = (item);                                 \
+    const size_t slot_ =                                                       \
+        gv_list_prepend_slot_(&(list)->impl, sizeof((list)->base[0]));         \
+    (list)->base[slot_] = scratch_;                                            \
+  } while (0)
+#else
 #define LIST_PREPEND(list, item)                                               \
   do {                                                                         \
     (list)->scratch = (item);                                                  \
@@ -146,6 +183,7 @@ static_assert(
         gv_list_prepend_slot_(&(list)->impl, sizeof((list)->base[0]));         \
     (list)->base[slot_] = (list)->scratch;                                     \
   } while (0)
+#endif
 
 /// retrieve an item from a list
 ///
@@ -203,6 +241,15 @@ static_assert(
 /// @param list List to operate on
 /// @param index Index of item to update
 /// @param item New value to set
+#ifdef TYPEOF
+#define LIST_SET(list, index, item)                                            \
+  do {                                                                         \
+    TYPEOF((list)->base[0]) scratch_ = (item);                                 \
+    const size_t slot_ = gv_list_get_((list)->impl, (index));                  \
+    LIST_DTOR_((list), slot_);                                                 \
+    (list)->base[slot_] = scratch_;                                            \
+  } while (0)
+#else
 #define LIST_SET(list, index, item)                                            \
   do {                                                                         \
     (list)->scratch = (item);                                                  \
@@ -210,6 +257,7 @@ static_assert(
     LIST_DTOR_((list), slot_);                                                 \
     (list)->base[slot_] = (list)->scratch;                                     \
   } while (0)
+#endif
 
 /// remove an item from a list
 ///
@@ -219,6 +267,20 @@ static_assert(
 ///
 /// @param list List to operate on
 /// @param item Item to remove
+#ifdef TYPEOF
+#define LIST_REMOVE(list, item)                                                \
+  do {                                                                         \
+    const size_t found_ =                                                      \
+        gv_list_find_((list)->impl, (TYPEOF((list)->base[0])[1]){item},        \
+                      sizeof((list)->base[0]));                                \
+    if (found_ == SIZE_MAX) { /* not found */                                  \
+      break;                                                                   \
+    }                                                                          \
+                                                                               \
+    LIST_DTOR_((list), found_);                                                \
+    gv_list_remove_(&(list)->impl, found_, sizeof((list)->base[0]));           \
+  } while (0)
+#else
 #define LIST_REMOVE(list, item)                                                \
   do {                                                                         \
     /* get something we can take the address of */                             \
@@ -233,6 +295,7 @@ static_assert(
     LIST_DTOR_((list), found_);                                                \
     gv_list_remove_(&(list)->impl, found_, sizeof((list)->base[0]));           \
   } while (0)
+#endif
 
 /// remove all items from a list
 ///
@@ -375,10 +438,17 @@ static_assert(
 ///
 /// @param list List to operate on
 /// @return Popped item
+#ifdef TYPEOF
 #define LIST_POP_FRONT(list)                                                   \
-  (gv_list_pop_front_(&(list)->impl, &(list)->scratch,                         \
-                      sizeof((list)->base[0])),                                \
+  (*(TYPEOF((list)->base))gv_list_pop_front_(&(list)->impl,                    \
+                                             (TYPEOF((list)->base[0])[1]){0},  \
+                                             sizeof((list)->base[0])))
+#else
+#define LIST_POP_FRONT(list)                                                   \
+  ((void)gv_list_pop_front_(&(list)->impl, &(list)->scratch,                   \
+                            sizeof((list)->base[0])),                          \
    (list)->scratch)
+#endif
 
 /// remove and return the last item of a list
 ///
@@ -388,10 +458,17 @@ static_assert(
 ///
 /// @param list List to operate on
 /// @return Popped item
+#ifdef TYPEOF
 #define LIST_POP_BACK(list)                                                    \
-  (gv_list_pop_back_(&(list)->impl, &(list)->scratch,                          \
-                     sizeof((list)->base[0])),                                 \
+  (*(TYPEOF((list)->base))gv_list_pop_back_(&(list)->impl,                     \
+                                            (TYPEOF((list)->base[0])[1]){0},   \
+                                            sizeof((list)->base[0])))
+#else
+#define LIST_POP_BACK(list)                                                    \
+  ((void)gv_list_pop_back_(&(list)->impl, &(list)->scratch,                    \
+                           sizeof((list)->base[0])),                           \
    (list)->scratch)
+#endif
 
 /// remove the last item of a list
 ///
@@ -407,8 +484,8 @@ static_assert(
   do {                                                                         \
     const size_t slot_ = gv_list_get_((list)->impl, LIST_SIZE(list) - 1);      \
     LIST_DTOR_((list), slot_);                                                 \
-    gv_list_pop_back_(&(list)->impl, &(list)->scratch,                         \
-                      sizeof((list)->base[0]));                                \
+    (void)gv_list_pop_back_(&(list)->impl, (char[sizeof((list)->base[0])]){0}, \
+                            sizeof((list)->base[0]));                          \
   } while (0)
 
 /// transform a managed list into a bare array

@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-PATHPLAN_VERSION = "4:9:0"
+PATHPLAN_VERSION = "4:10:0"
 
 AM_CPPFLAGS = -I$(top_srcdir)/lib
 
