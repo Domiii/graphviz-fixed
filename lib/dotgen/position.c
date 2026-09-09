@@ -340,8 +340,9 @@ static WUR int make_LR_constraints(graph_t *g) {
 }
 
 /// make virtual edge pairs corresponding to input edges
-static void make_edge_pairs(graph_t * g)
-{
+///
+/// @return 0 on success
+static int make_edge_pairs(graph_t *g) {
     int i, m0, m1;
     node_t *n, *sn;
     edge_t *e;
@@ -365,6 +366,7 @@ static void make_edge_pairs(graph_t * g)
 			ND_rank(aghead(e)) - m1 - 1);
 	    }
     }
+    return 0;
 }
 
 static void contain_clustnodes(graph_t * g)
