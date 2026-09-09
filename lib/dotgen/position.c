@@ -533,7 +533,12 @@ static void compress_graph(graph_t * g)
 
 static int create_aux_edges(graph_t *g) {
     allocate_aux_edges(g);
-    make_LR_constraints(g);
+    {
+        const int rc = make_LR_constraints(g);
+        if (rc != 0) {
+          return rc;
+        }
+    }
     make_edge_pairs(g);
     pos_clusters(g);
     compress_graph(g);
