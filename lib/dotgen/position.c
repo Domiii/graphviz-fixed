@@ -141,7 +141,12 @@ int dot_position(graph_t *g) {
     expand_leaves(g);
     if (flat_edges(g))
 	set_ycoords(g);
-    create_aux_edges(g);
+    {
+	const int rc = create_aux_edges(g);
+	if (rc != 0) {
+	    return rc;
+	}
+    }
     if (rank(g, 2, nsiter2(g))) { /* LR balance == 2 */
 	connectGraph (g);
 	const int rank_result = rank(g, 2, nsiter2(g));
