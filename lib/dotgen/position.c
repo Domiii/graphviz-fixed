@@ -29,7 +29,10 @@
 #include <util/gv_math.h>
 
 static int nsiter2(graph_t * g);
-static void create_aux_edges(graph_t * g);
+
+/// @return 0 on success
+static int create_aux_edges(graph_t *g);
+
 static void remove_aux_edges(graph_t * g);
 static void set_xcoords(graph_t * g);
 static void set_ycoords(graph_t * g);
@@ -522,13 +525,13 @@ static void compress_graph(graph_t * g)
     make_aux_edge(GD_ln(g), GD_rn(g), x, 1000);
 }
 
-static void create_aux_edges(graph_t * g)
-{
+static int create_aux_edges(graph_t *g) {
     allocate_aux_edges(g);
     make_LR_constraints(g);
     make_edge_pairs(g);
     pos_clusters(g);
     compress_graph(g);
+    return 0;
 }
 
 static void remove_aux_edges(graph_t * g)
