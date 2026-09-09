@@ -271,6 +271,9 @@ static WUR int make_LR_constraints(graph_t *g) {
 	    if (v) {
 		width = ND_rw(u) + ND_lw(v) + nodesep;
 		e0 = make_aux_edge(u, v, width, 0);
+		if (e0 == NULL) {
+		    return -1;
+		}
 		last = (ND_rank(v) = last + width);
 	    }
 
@@ -286,12 +289,14 @@ static WUR int make_LR_constraints(graph_t *g) {
 		/* these guards are needed because the flat edges
 		 * work very poorly with cluster layout */
 		if (!canreach(agtail(e0), aghead(e0)))
-		    make_aux_edge(aghead(e0), agtail(e0), m1,
-			ED_weight(e));
+		    if (make_aux_edge(aghead(e0), agtail(e0), m1, ED_weight(e)) == NULL) {
+			return -1;
+		    }
 		m1 = m0 + ND_rw(agtail(e1)) + ND_lw(aghead(e1));
 		if (!canreach(aghead(e1), agtail(e1)))
-		    make_aux_edge(agtail(e1), aghead(e1), m1,
-			ED_weight(e));
+		    if (make_aux_edge(agtail(e1), aghead(e1), m1, ED_weight(e)) == NULL) {
+			return -1;
+		    }
 	    }
 
 	    /* position flat edge endpoints */
@@ -321,7 +326,9 @@ static WUR int make_LR_constraints(graph_t *g) {
 		     * ED_minlen(e) is max of ED_minlen of all equivalent 
                      * edges.
                      */
-		    make_aux_edge(t0, h0, m0, ED_weight(e));
+		    if (make_aux_edge(t0, h0, m0, ED_weight(e)) == NULL) {
+			return -1;
+		    }
 		}
 		/* labeled flat edges between non-neighbors have already
                  * been constrained by the label above. 
