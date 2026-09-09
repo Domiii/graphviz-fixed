@@ -548,7 +548,12 @@ static int create_aux_edges(graph_t *g) {
           return rc;
         }
     }
-    make_edge_pairs(g);
+    {
+        const int rc = make_edge_pairs(g);
+        if (rc != 0) {
+          return rc;
+        }
+    }
     pos_clusters(g);
     compress_graph(g);
     return 0;
