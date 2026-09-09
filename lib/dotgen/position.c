@@ -64,16 +64,6 @@ dumpNS (graph_t * g)
 }
 #endif
 
-static double
-largeMinlen (double l)
-{
-  agerrorf(
-        "Edge length %f larger than maximum %d allowed.\nCheck for overwide "
-        "node(s).\n",
-        l, INT_MAX);
-  return INT_MAX;
-}
-
 /* When source and/or sink nodes are defined, it is possible that
  * after the auxiliary edges are added, the graph may still have 2 or
  * 3 components. To fix this, we put trivial constraints connecting the
@@ -199,8 +189,14 @@ edge_t *make_aux_edge(node_t * u, node_t * v, double len, int wt)
 
     agtail(e) = u;
     aghead(e) = v;
-    if (len > INT_MAX)
-	len = largeMinlen (len);
+    if (len > INT_MAX) {
+	agerrorf(
+	  "Edge length %f larger than maximum %d allowed.\nCheck for overwide "
+	  "node(s).\n", len, INT_MAX);
+	free(e2->out.base.data);
+	free(e2);
+	return NULL;
+    }
     ED_minlen(e) = ROUND(len);
     ED_weight(e) = wt;
     fast_edge(e);
