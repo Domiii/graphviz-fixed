@@ -359,8 +359,12 @@ static WUR int make_edge_pairs(graph_t *g) {
 		    m1 = -m0;
 		    m0 = 0;
 		}
-		make_aux_edge(sn, agtail(e), m0 + 1, ED_weight(e));
-		make_aux_edge(sn, aghead(e), m1 + 1, ED_weight(e));
+		if (make_aux_edge(sn, agtail(e), m0 + 1, ED_weight(e)) == NULL) {
+		    return -1;
+		}
+		if (make_aux_edge(sn, aghead(e), m1 + 1, ED_weight(e)) == NULL) {
+		    return -1;
+		}
 		ND_rank(sn) =
 		    MIN(ND_rank(agtail(e)) - m0 - 1,
 			ND_rank(aghead(e)) - m1 - 1);
