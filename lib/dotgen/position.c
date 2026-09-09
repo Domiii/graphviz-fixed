@@ -225,7 +225,7 @@ static void allocate_aux_edges(graph_t * g)
 }
 
 /// @return 0 on success
-static int make_LR_constraints(graph_t *g) {
+static WUR int make_LR_constraints(graph_t *g) {
     int i, j;
     int m0;
     double width;
