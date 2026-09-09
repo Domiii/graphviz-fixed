@@ -27,11 +27,12 @@
 #include <stdlib.h>
 #include <util/alloc.h>
 #include <util/gv_math.h>
+#include <util/unused.h>
 
 static int nsiter2(graph_t * g);
 
 /// @return 0 on success
-static int create_aux_edges(graph_t *g);
+static WUR int create_aux_edges(graph_t *g);
 
 static void remove_aux_edges(graph_t * g);
 static void set_xcoords(graph_t * g);
