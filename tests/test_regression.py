@@ -6910,20 +6910,7 @@ def test_2858():
 
 
 @pytest.mark.skipif(which("gvpr") is None, reason="GVPR not available")
-@pytest.mark.parametrize(
-    "with_graph",
-    (
-        False,
-        pytest.param(
-            True,
-            marks=pytest.mark.xfail(
-                raises=RuntimeError,
-                reason="https://gitlab.com/graphviz/graphviz/-/issues/2858",
-                strict=True,
-            ),
-        ),
-    ),
-)
+@pytest.mark.parametrize("with_graph", (False, True))
 def test_2858_1(with_graph: bool):
     """
     gvpr should reject `$F` in an `END` block
