@@ -453,12 +453,11 @@ chkSgraph (g);
 maze *mkMaze(graph_t *g) {
     maze* mp = gv_alloc(sizeof(maze));
     boxf* rects;
-    cell* cp;
     double w2, h2;
     boxf bb;
 
     mp->ngcells = agnnodes_z(g);
-    cp = mp->gcells = gv_calloc(mp->ngcells, sizeof(cell));
+    cell *cp = mp->gcells = gv_calloc(mp->ngcells, sizeof(cell));
 
     boxf BB = {.LL = {.x = DBL_MAX, .y = DBL_MAX},
                .UR = {.x = -DBL_MAX, .y = -DBL_MAX}};
