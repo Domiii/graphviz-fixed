@@ -303,7 +303,7 @@ and this project adheres to
   tarball of binaries. #2726, !4348
 - In the CMake build system, whether Ghostscript-dependent components are built
   or not can now be controlled by the `-DWITH_GHOSTSCRIPT={AUTO|ON|OFF}` option.
-  #2735
+  \#2735
 
 ### Fixed
 
@@ -382,7 +382,7 @@ and this project adheres to
   static builds. Previously it was only available in shared library (on-demand
   plugin loading) builds.
 - The distributed Fedora and Rocky Linux packages now include the Kitty plugin.
-  #2704
+  \#2704
 - On Windows, the GDI+ plugin is now available in Graphviz static builds.
   Previously it was only available in shared library (on-demand plugin loading)
   builds.
@@ -506,7 +506,7 @@ and this project adheres to
 - **Breaking**: The `all` parameter to `exclose` has been removed.
 - MinGW on 32-bit x86 (“mingw32”) is no longer supported as a platform.
   Installers and release archives for this platform are no longer provided.
-  #2649
+  \#2649
 - `gvgen` supports a new option, `-u<seed>`, for specifying the initial state of
   the random number generator (RNG). The way in which the RNG is seeded has
   slightly changed.
@@ -542,11 +542,11 @@ and this project adheres to
 - The SVG output format (`-Tsvg`, `-Tsvg_inline`) no longer duplicates font
   families.
 - **Breaking**: The function `aginternalmapclearlocalnames` has been removed.
-  #2664
+  \#2664
 - In gvpr programs, the `#` and `in` operators now work on `ARGV`. #2582
 - **Breaking**: `xdot_color_stop.frac` is now a `double`.
 - The GD plugin’s PNG output (`-Tpng:cairo:gd`) now sets DPI in the written PNG.
-  #1617
+  \#1617
 - The GDI+ plugin’s output (`-T*:cairo:gdiplus`) now sets DPI in the written
   output. #1617
 - The Quartz plugin’s PNG output (`-Tpng:cairo:quartz`) now sets DPI in the
@@ -579,7 +579,7 @@ and this project adheres to
   equivalent internally. This allows you to have a non-HTML string and an
   HTML-like string with the same textual content. #2089
 - Smyrna no longer crashes when selecting `Edit→Attributes` with no open graph.
-  #2635
+  \#2635
 - A bug in point map handling, where comparison of integer points were accessed
   as doubles, has been corrected. The user facing consequences of this is
   unknown, but could potentially lead to crashes, at least on 32-bit platforms.
@@ -603,11 +603,11 @@ and this project adheres to
 - `twopi` no longer crashes when processing graphs with `splines="ortho"`. #2643
 - Network simplex functions have been refactored to avoid recursion. Now graphs
   with deep node chains that previously caused stack overflows can be processed.
-  #2646
+  \#2646
 - Calling the GVPR function `lock` with a second argument `> 2³¹ - 1` is no
   longer misinterpreted as a negative number.
 - Out-of-bounds accesses during `gvgen` random tree generation have been fixed.
-  #2640
+  \#2640
 - `gvmap` no longer reads out-of-bounds memory when processing the
   `-c_opacity=…` command line option. This was a regression in Graphviz 2.49.0.
 - Using `rankdir=LR` in combination with `ltail` no longer causes crashes in
@@ -626,7 +626,7 @@ and this project adheres to
 - In the CMake build system, configuring with
   `-DENABLE_PYTHON=ON -DENABLE_SWIG=ON` no longer spuriously fails. #2675
 - An assertion failure when processing graphs with empty ranks has been fixed.
-  #1514
+  \#1514
 - Using GVPR to set a default attribute on a subgraph whose root graph has no
   default for that attribute no longer incorrectly sets the default on the root
   graph. #2639
@@ -672,7 +672,7 @@ and this project adheres to
   `\n"`) are once again correctly escaped in dot or canonical output. This was a
   regression in Graphviz 9.0.0. #2614
 - `dot_builtins` no longer lists duplicate format options in its error messages.
-  #2604
+  \#2604
 - A precision error that resulted in truncated edge lines has been corrected.
   This was a regression in Graphviz 12.0.0. #2620
 - The xlib plugin (`-Tx11`) resets its initialization state during finalization.
@@ -710,7 +710,7 @@ and this project adheres to
 - The Autotools release artifacts for macOS (`Darwin_*_graphviz-*.tar.gz`) now
   use relative paths in links to dependent libraries and plugins. This should
   make the tree relocatable instead of having to live at /Users/gitlab/builds.
-  #2501
+  \#2501
 - `gml2gv` no longer maps GML `label` attributes to Graphviz `name` attributes.
   These are now mapped to Graphviz `label` attributes. #2586
 
@@ -740,7 +740,7 @@ and this project adheres to
   a string ending in a trailing `%` (e.g. `vgpane0 bind triangle %`) no longer
   causes later out-of-bounds reads during triangulation. Like the previous
   entries, this bug seems to have existed since the first revision of Graphviz.
-  #2596
+  \#2596
 - Mouse right-clicks in Smyrna are no longer sticky. In some contexts,
   right-clicking the mouse would register a mouse down event but no mouse up
   event, leading Smyrna to believe the user was dragging with the right button
@@ -898,7 +898,7 @@ and this project adheres to
   was masked by the bug discussed in the prior CHANGELOG entry that made it not
   possible to select `overlap=ortho_xy` or `overlap=porthoxy`.
 - `splines = true` merging multiedges together when using the neato engine.
-  #2241 (fixed on Windows by enabling GTS)
+  \#2241 (fixed on Windows by enabling GTS)
 - The GVC output writing APIs handle writes of compressed data `> UINT_MAX` more
   correctly.
 - GVPR casts of strings to floats now produce the expected values. This was a
@@ -1059,7 +1059,7 @@ and this project adheres to
 - The core PostScript output format (`-Tps`) warns if using an
   out-of-specification font name. To avoid this, use a more sophisticated output
   format like Cairo (`-Tps:cairo`) that does font name lookup and translation.
-  #218
+  \#218
 - **Breaking**: The libpack functions `putRects`, `packRects`, `putGraphs`,
   `packGraphs`, `packSubgraphs`, `pack_graph`, `shiftGraphs`, `ccomps`,
   `cccomps`, and `pccomps` now take the number of items they are operating on
