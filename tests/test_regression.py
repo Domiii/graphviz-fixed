@@ -6909,6 +6909,50 @@ def test_2858():
             raise
 
 
+@pytest.mark.skipif(which("gvpr") is None, reason="GVPR not available")
+@pytest.mark.parametrize(
+    "with_graph",
+    (
+        False,
+        pytest.param(
+            True,
+            marks=pytest.mark.xfail(
+                raises=RuntimeError,
+                reason="https://gitlab.com/graphviz/graphviz/-/issues/2858",
+                strict=True,
+            ),
+        ),
+    ),
+)
+def test_2858_1(with_graph: bool):
+    """
+    gvpr should reject `$F` in an `END` block
+    https://gitlab.com/graphviz/graphviz/-/issues/2858
+
+    Args:
+        with_graph: Whether to supply any input graphs.
+    """
+
+    # locate our associated test case in this directory
+    program = Path(__file__).parent / "2858_1.gvpr"
+    assert program.exists(), "unexpectedly missing test case"
+
+    if with_graph:
+        src = "graph { a -- b; }"
+    else:
+        src = ""
+
+    # run this through gvpr
+    gvprbin = which("gvpr")
+    try:
+        run(gvprbin, "-f", program, input=src)
+        raise RuntimeError("gvpr did not reject `$F` in `END`")
+    except subprocess.CalledProcessError as e:
+        # fail if we crashed
+        if e.returncode != 1:
+            raise
+
+
 def test_698066():
     """
     Graphviz should not crash when processing this graph
