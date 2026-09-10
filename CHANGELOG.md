@@ -17,6 +17,7 @@ and this project adheres to
   \#2768, #2769
 - A crash when setting an excessively large minimum node height has been fixed.
   \#2781
+- gvpr no longer crashes when encountering `$F` in a `BEGIN` clause. #2858
 
 ## [16.1.0] – 2026-09-03
 
