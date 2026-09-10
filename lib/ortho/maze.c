@@ -14,6 +14,7 @@
 #define DEBUG
 
 #include <assert.h>
+#include <cgraph/cgraph.h>
 #include <float.h>
 #include <limits.h>
 #include <math.h>
@@ -457,8 +458,7 @@ maze *mkMaze(graph_t *g) {
     double w2, h2;
     boxf bb;
 
-    assert(agnnodes(g) >= 0);
-    mp->ngcells = (size_t)agnnodes(g);
+    mp->ngcells = agnnodes_z(g);
     cp = mp->gcells = gv_calloc(mp->ngcells, sizeof(cell));
 
     boxf BB = {.LL = {.x = DBL_MAX, .y = DBL_MAX},
