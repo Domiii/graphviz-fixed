@@ -6889,6 +6889,31 @@ def test_2857_4(tmp_path: Path):
             raise
 
 
+@pytest.mark.skipif(which("gvpr") is None, reason="GVPR not available")
+@pytest.mark.xfail(
+    raises=subprocess.CalledProcessError,
+    reason="https://gitlab.com/graphviz/graphviz/-/issues/2858",
+    strict=which("gvpr") is not None and is_asan_instrumented(which("gvpr")),
+)
+def test_2858():
+    """
+    gvpr should not crash when encountering `$F` in a `BEGIN` block
+    https://gitlab.com/graphviz/graphviz/-/issues/2858
+    """
+
+    # locate our associated test case in this directory
+    src = Path(__file__).parent / "2858.gvpr"
+    assert src.exists(), "unexpectedly missing test case"
+
+    # run this through gvpr
+    try:
+        gvpr(src)
+    except subprocess.CalledProcessError as e:
+        # only fail if we crashed, not exited with failure
+        if e.returncode != 1:
+            raise
+
+
 def test_698066():
     """
     Graphviz should not crash when processing this graph
