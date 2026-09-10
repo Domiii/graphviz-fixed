@@ -451,7 +451,6 @@ chkSgraph (g);
 /// creates @ref maze and fills @ref maze::gcells and @ref maze::cells. A subroutine of @ref orthoEdges.
 
 maze *mkMaze(graph_t *g) {
-    node_t* n;
     maze* mp = gv_alloc(sizeof(maze));
     boxf* rects;
     cell* cp;
@@ -463,7 +462,7 @@ maze *mkMaze(graph_t *g) {
 
     boxf BB = {.LL = {.x = DBL_MAX, .y = DBL_MAX},
                .UR = {.x = -DBL_MAX, .y = -DBL_MAX}};
-    for (n = agfstnode (g); n; n = agnxtnode(g,n)) {
+    for (node_t *n = agfstnode (g); n; n = agnxtnode(g, n)) {
         w2 = fmax(1, ND_xsize(n) / 2.0);
         h2 = fmax(1, ND_ysize(n) / 2.0);
         bb.LL.x = ND_coord(n).x - w2;
