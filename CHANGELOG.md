@@ -12,6 +12,9 @@ and this project adheres to
 - `nop` no longer reorders edges. #2855
 - The canonical format (`-Tcanon`) produces output that is stable across
   multiple invocations. #2193
+- Cluster representatives in the derived graph are now anonymous nodes,
+  preventing a potential heap overrun by name collision with ordinary nodes.
+  \#2768, #2769
 
 ## [16.1.0] – 2026-09-03
 

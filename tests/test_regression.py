@@ -6327,12 +6327,7 @@ def test_2743():
     dot("dot", src)
 
 
-@pytest.mark.xfail(
-    raises=subprocess.CalledProcessError,
-    reason="https://gitlab.com/graphviz/graphviz/-/issues/2768",
-    strict=which("dot") is not None and is_asan_instrumented(which("dot")),
-)
-@pytest.mark.parametrize("variant", ("2768.dot", "2768_1.dot"))
+@pytest.mark.parametrize("variant", ("2768.dot", "2768_1.dot", "2768_2.dot"))
 def test_2768(variant: str):
     """
     Graphviz should not crash when processing this graph
@@ -6352,12 +6347,7 @@ def test_2768(variant: str):
             raise
 
 
-@pytest.mark.xfail(
-    raises=subprocess.CalledProcessError,
-    reason="https://gitlab.com/graphviz/graphviz/-/issues/2769",
-    strict=which("dot") is not None and is_asan_instrumented(which("dot")),
-)
-@pytest.mark.parametrize("variant", ("2769.dot", "2769_1.dot"))
+@pytest.mark.parametrize("variant", ("2769.dot", "2769_1.dot", "2769_2.dot"))
 def test_2769(variant: str):
     """
     Graphviz should not crash when processing this graph

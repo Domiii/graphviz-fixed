@@ -266,7 +266,7 @@ static void deriveClusters(Agraph_t *dg, Agraph_t *g) {
 
   for (subg = agfstsubg(g); subg; subg = agnxtsubg(subg)) {
     if (is_a_cluster(subg)) {
-      dn = agnode(dg, agnameof(subg), 1);
+      dn = agnode(dg, NULL, 1);
       agbindrec(dn, NRECNAME, sizeof(ccgnodeinfo_t), true);
       clustOf(dn) = subg;
       for (n = agfstnode(subg); n; n = agnxtnode(subg, n)) {
@@ -274,7 +274,7 @@ static void deriveClusters(Agraph_t *dg, Agraph_t *g) {
           fprintf(stderr,
                   "Error: node \"%s\" belongs to two non-nested clusters "
                   "\"%s\" and \"%s\"\n",
-                  agnameof(n), agnameof(subg), agnameof(dnodeOf(n)));
+                  agnameof(n), agnameof(subg), agnameof(clustOf(dnodeOf(n))));
         }
         dnodeSet(n, dn);
       }
