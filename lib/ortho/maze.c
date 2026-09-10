@@ -453,7 +453,6 @@ chkSgraph (g);
 maze *mkMaze(graph_t *g) {
     maze* mp = gv_alloc(sizeof(maze));
     boxf* rects;
-    double h2;
     boxf bb;
 
     mp->ngcells = agnnodes_z(g);
@@ -463,7 +462,7 @@ maze *mkMaze(graph_t *g) {
                .UR = {.x = -DBL_MAX, .y = -DBL_MAX}};
     for (node_t *n = agfstnode (g); n; n = agnxtnode(g, n)) {
         const double w2 = fmax(1, ND_xsize(n) / 2.0);
-        h2 = fmax(1, ND_ysize(n) / 2.0);
+        const double h2 = fmax(1, ND_ysize(n) / 2.0);
         bb.LL.x = ND_coord(n).x - w2;
         bb.UR.x = ND_coord(n).x + w2;
         bb.LL.y = ND_coord(n).y - h2;
