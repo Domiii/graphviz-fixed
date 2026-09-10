@@ -15,6 +15,7 @@
 
 #include <assert.h>
 #include <cgraph/cgraph.h>
+#include <common/geomprocs.h>
 #include <float.h>
 #include <limits.h>
 #include <math.h>
@@ -466,10 +467,7 @@ maze *mkMaze(graph_t *g) {
                                 .y = ND_coord(n).y - h2},
                          .UR = {.x = ND_coord(n).x + w2,
                                 .y = ND_coord(n).y + h2}};
-	BB.LL.x = fmin(BB.LL.x, bb.LL.x);
-	BB.LL.y = fmin(BB.LL.y, bb.LL.y);
-	BB.UR.x = fmax(BB.UR.x, bb.UR.x);
-	BB.UR.y = fmax(BB.UR.y, bb.UR.y);
+	expandbbf(&BB, bb);
         cp->bb = bb;
 	cp->flags |= MZ_ISNODE;
         ND_alg(n) = cp;
