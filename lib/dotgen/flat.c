@@ -256,7 +256,6 @@ checkFlatAdjacent (edge_t* e)
 int 
 flat_edges(graph_t * g)
 {
-    bool reset = false;
     node_t *n;
     edge_t *e;
 
@@ -293,6 +292,7 @@ flat_edges(graph_t * g)
     }
 
     rec_save_vlists(g);
+    bool reset = false;
     for (n = GD_nlist(g); n; n = ND_next(n)) {
           /* if n is the tail of any flat edge, one will be in flat_out */
 	if (ND_flat_out(n).list) {
