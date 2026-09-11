@@ -104,10 +104,9 @@ static void setbounds(node_t * v, int *bounds, int lpos, int rpos)
 static int flat_limits(graph_t * g, edge_t * e)
 {
     int lnode, rnode, bounds[4], lpos, rpos, pos;
-    node_t **rank;
 
     const int r = ND_rank(agtail(e)) - 1;
-    rank = GD_rank(g)[r].v;
+    node_t **const rank = GD_rank(g)[r].v;
     lnode = 0;
     rnode = GD_rank(g)[r].n - 1;
     bounds[HLB] = bounds[SLB] = lnode - 1;
