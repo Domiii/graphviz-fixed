@@ -6327,11 +6327,6 @@ def test_2743():
     dot("dot", src)
 
 
-@pytest.mark.xfail(
-    raises=subprocess.CalledProcessError,
-    reason="https://gitlab.com/graphviz/graphviz/-/issues/2756",
-    strict=which("dot") is not None and is_asan_instrumented(which("dot")),
-)
 @pytest.mark.parametrize("variant", ("2756.dot", "2756_1.dot"))
 def test_2756(variant: str):
     """

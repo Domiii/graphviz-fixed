@@ -286,6 +286,16 @@ flat_edges(graph_t * g)
 	    }
 	    if (found)
 		break;
+	    for (size_t j = 0; j < ND_other(n).size; j++) {
+		e = ND_other(n).list[j];
+		if (ED_label(e) && !ED_adjacent(e)) {
+		    abomination(g);
+		    found = true;
+		    break;
+		}
+	    }
+	    if (found)
+		break;
 	}
     }
 
