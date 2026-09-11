@@ -136,7 +136,6 @@ EXCLUDE = (
     "lib/cgraph/rec.c",
     "lib/cgraph/refstr.c",
     "lib/cgraph/subg.c",
-    "lib/cgraph/write.c",
     "lib/circogen/block.c",
     "lib/circogen/block.h",
     "lib/circogen/blockpath.c",
