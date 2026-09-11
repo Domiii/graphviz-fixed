@@ -2235,7 +2235,7 @@ static node_t *neighbor(graph_t *g, node_t *vn, edge_t *ie, edge_t *oe,
                         int dir) {
   int i;
   node_t *n, *rv = NULL;
-  rank_t *rank = &(GD_rank(g)[ND_rank(vn)]);
+  rank_t *rank = &GD_rank(g)[ND_rank(vn)];
 
   for (i = ND_order(vn) + dir; i >= 0 && i < rank->n; i += dir) {
     n = rank->v[i];
