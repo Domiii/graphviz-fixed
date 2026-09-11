@@ -276,26 +276,20 @@ flat_edges(graph_t * g)
 
     if (GD_rank(g)[0].flat || GD_n_cluster(g) > 0) {
 	bool found = false;
-	for (i = 0; (n = GD_rank(g)[0].v[i]); i++) {
-	    for (size_t j = 0; (e = ND_flat_in(n).list[j]); j++) {
+	for (i = 0; !found && (n = GD_rank(g)[0].v[i]); i++) {
+	    for (size_t j = 0; !found && (e = ND_flat_in(n).list[j]); j++) {
 		if (ED_label(e) && !ED_adjacent(e)) {
 		    abomination(g);
 		    found = true;
-		    break;
 		}
 	    }
-	    if (found)
-		break;
-	    for (size_t j = 0; j < ND_other(n).size; j++) {
+	    for (size_t j = 0; !found && j < ND_other(n).size; j++) {
 		e = ND_other(n).list[j];
 		if (ED_label(e) && !ED_adjacent(e)) {
 		    abomination(g);
 		    found = true;
-		    break;
 		}
 	    }
-	    if (found)
-		break;
 	}
     }
 
