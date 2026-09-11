@@ -309,11 +309,10 @@ flat_edges(graph_t * g)
 	    }
 		/* look for other flat edges with labels */
 	    for (size_t j = 0; j < ND_other(n).size; j++) {
-		edge_t* le;
 		e = ND_other(n).list[j];
 		if (ND_rank(agtail(e)) != ND_rank(aghead(e))) continue;
 		if (agtail(e) == aghead(e)) continue; /* skip loops */
-		le = e;
+		edge_t *le = e;
 		while (ED_to_virt(le)) le = ED_to_virt(le);
 		ED_adjacent(e) = ED_adjacent(le); 
 		if (ED_label(e)) {
