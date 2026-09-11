@@ -136,7 +136,7 @@ static int flat_limits(graph_t * g, edge_t * e)
 static void 
 flat_node(edge_t * e)
 {
-    int r, place;
+    int r;
     double ypos, h2;
     graph_t *g;
     node_t *n, *vn;
@@ -148,7 +148,7 @@ flat_node(edge_t * e)
     g = dot_root(agtail(e));
     r = ND_rank(agtail(e));
 
-    place = flat_limits(g, e);
+    const int place = flat_limits(g, e);
     /* grab ypos = LL.y of label box before make_vn_slot() */
     if ((n = GD_rank(g)[r - 1].v[0]))
 	ypos = ND_coord(n).y - GD_rank(g)[r - 1].ht1;
