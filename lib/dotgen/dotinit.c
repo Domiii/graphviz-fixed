@@ -193,18 +193,6 @@ void dot_cleanup(graph_t * g)
     dot_cleanup_graph(g);
 }
 
-#ifdef DEBUG
-int
-fastn (graph_t * g)
-{
-    node_t* u;
-    int cnt = 0;
-    for (u = GD_nlist(g); u; u = ND_next(u)) cnt++;
-    return cnt;
-}
-#endif
-
-
 static void
 remove_from_rank (Agraph_t * g, Agnode_t* n)
 {
