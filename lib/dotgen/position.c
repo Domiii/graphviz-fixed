@@ -598,11 +598,11 @@ static void remove_aux_edges(graph_t * g)
 static void 
 set_xcoords(graph_t * g)
 {
-    int i, j;
+    int j;
     node_t *v;
     rank_t *rank = GD_rank(g);
 
-    for (i = GD_minrank(g); i <= GD_maxrank(g); i++) {
+    for (int i = GD_minrank(g); i <= GD_maxrank(g); i++) {
 	for (j = 0; j < rank[i].n; j++) {
 	    v = rank[i].v[j];
 	    ND_coord(v).x = ND_rank(v);
