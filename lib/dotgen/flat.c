@@ -256,7 +256,6 @@ checkFlatAdjacent (edge_t* e)
 int 
 flat_edges(graph_t * g)
 {
-    int i;
     bool reset = false;
     node_t *n;
     edge_t *e;
@@ -276,7 +275,7 @@ flat_edges(graph_t * g)
 
     if (GD_rank(g)[0].flat || GD_n_cluster(g) > 0) {
 	bool found = false;
-	for (i = 0; !found && (n = GD_rank(g)[0].v[i]); i++) {
+	for (size_t i = 0; !found && (n = GD_rank(g)[0].v[i]); i++) {
 	    for (size_t j = 0; !found && (e = ND_flat_in(n).list[j]); j++) {
 		if (ED_label(e) && !ED_adjacent(e)) {
 		    abomination(g);
@@ -297,7 +296,7 @@ flat_edges(graph_t * g)
     for (n = GD_nlist(g); n; n = ND_next(n)) {
           /* if n is the tail of any flat edge, one will be in flat_out */
 	if (ND_flat_out(n).list) {
-	    for (i = 0; (e = ND_flat_out(n).list[i]); i++) {
+	    for (size_t i = 0; (e = ND_flat_out(n).list[i]); i++) {
 		if (ED_label(e)) {
 		    if (ED_adjacent(e)) {
 			ED_dist(e) = GD_flip(g) ? ED_label(e)->dimen.y : ED_label(e)->dimen.x;
