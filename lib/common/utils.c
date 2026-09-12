@@ -345,22 +345,16 @@ bool mapbool(const char *p)
 
 pointf dotneato_closest(splines * spl, pointf pt)
 {
-    double d2, dlow2, dhigh2; /* squares of distances */
-    double low, high, t;
-    pointf c[4], pt2;
-    bezier bz;
+    pointf pt2;
 
     size_t besti = SIZE_MAX;
     size_t bestj = SIZE_MAX;
     double bestdist2 = DBL_MAX;
     for (size_t i = 0; i < spl->size; i++) {
-	bz = spl->list[i];
+	const bezier bz = spl->list[i];
 	for (size_t j = 0; j < bz.size; j++) {
-	    pointf b;
-
-	    b.x = bz.list[j].x;
-	    b.y = bz.list[j].y;
-	    d2 = DIST2(b, pt);
+	    const pointf b = bz.list[j];
+	    const double d2 = DIST2(b, pt);
 	    if (bestj == SIZE_MAX || d2 < bestdist2) {
 		besti = i;
 		bestj = j;
@@ -369,7 +363,7 @@ pointf dotneato_closest(splines * spl, pointf pt)
 	}
     }
 
-    bz = spl->list[besti];
+    const bezier bz = spl->list[besti];
     /* Pick best Bézier. If bestj is the last point in the B-spline, decrement.
      * Then set j to be the first point in the corresponding Bézier by dividing
      * then multiplying be 3. Thus, 0,1,2 => 0; 3,4,5 => 3, etc.
@@ -377,16 +371,11 @@ pointf dotneato_closest(splines * spl, pointf pt)
     if (bestj == bz.size-1)
 	bestj--;
     const size_t j = 3 * (bestj / 3);
-    for (size_t k = 0; k < 4; k++) {
-	c[k].x = bz.list[j + k].x;
-	c[k].y = bz.list[j + k].y;
-    }
-    low = 0.0;
-    high = 1.0;
-    dlow2 = DIST2(c[0], pt);
-    dhigh2 = DIST2(c[3], pt);
-    do {
-	t = (low + high) / 2.0;
+    const pointf c[] =
+      {bz.list[j], bz.list[j + 1], bz.list[j + 2], bz.list[j + 3]};
+    for (double low = 0, high = 1.0, dlow2 = DIST2(c[0], pt),
+         dhigh2 = DIST2(c[3], pt);;) {
+	const double t = (low + high) / 2.0;
 	pt2 = Bezier(c, t, NULL, NULL);
 	if (fabs(dlow2 - dhigh2) < 1.0)
 	    break;
@@ -399,7 +388,7 @@ pointf dotneato_closest(splines * spl, pointf pt)
 	    low = t;
 	    dlow2 = DIST2(pt2, pt);
 	}
-    } while (1);
+    }
     return pt2;
 }
 
