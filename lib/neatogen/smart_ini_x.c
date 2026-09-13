@@ -259,7 +259,6 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 	double uniLength;
 	double* y = new_coords;
 	float **lap = gv_calloc(n, sizeof(float *));
-	double pos_i;
 	double *balance = gv_calloc(n, sizeof(double));
 	double b;
 	bool converged;
@@ -313,7 +312,7 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
     {
 		double diff;
 		for (int i = 1; i < n; i++) {
-			pos_i=x[i];		
+			const double pos_i = x[i];		
 			for (int j = 0; j < i; j++) {
 				diff=(double)Dij[i][j]*(double)Dij[i][j]-(pos_i-x[j])*(pos_i-x[j]);
 				Dij[i][j]=Dij[j][i]=diff>0 ? (DistType)sqrt(diff) : 0;
@@ -323,7 +322,7 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 	
 	/* Compute the balance vector: */
 	for (int i = 0; i < n; i++) {
-		pos_i=y[i];
+		const double pos_i = y[i];
 		balance[i]=0;
 		for (int j = 0; j < n; j++) {
 			if (j==i)
@@ -344,7 +343,7 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 		}
 		converged = true;
 		for (int i = 0; i < n; i++) {
-			pos_i=y[i];
+			const double pos_i = y[i];
 			b=0;
 			for (int j = 0; j < n; j++) {
 				if (j==i)
