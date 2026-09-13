@@ -32,16 +32,15 @@ enum {
 
 struct DeviceContext
 {
-	HWND hwnd;
 	HDC hdc;
 
-	DeviceContext(HWND wnd = nullptr): hwnd(wnd), hdc(GetDC(wnd))
+	DeviceContext(): hdc(GetDC(nullptr))
 	{
 	}
 
 	~DeviceContext()
 	{
-		ReleaseDC(hwnd, hdc);
+		ReleaseDC(nullptr, hdc);
 	}
 
 };
