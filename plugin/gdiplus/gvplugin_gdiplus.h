@@ -55,7 +55,7 @@ struct Layout
 	Layout(char *fontname, double fontsize, char* string);
 };
 
-void gdiplus_free_layout(void *layout);
+extern "C" void gdiplus_free_layout(void *layout);
 
 void UseGdiplus();
 const Gdiplus::StringFormat* GetGenericTypographic();
