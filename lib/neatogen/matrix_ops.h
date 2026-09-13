@@ -26,8 +26,6 @@ PRIVATE void orthog1(int n, double *vec);
 PRIVATE void init_vec_orth1(int n, double *vec);
 PRIVATE void right_mult_with_vector(vtx_data *, int, double *,
 				       double *);
-PRIVATE void right_mult_with_vector_f(float **, int, double *,
-					 double *);
 PRIVATE void vectors_subtraction(int, double *, double *, double *);
 PRIVATE void vectors_addition(int, double *, double *, double *);
 PRIVATE void vectors_scalar_mult(int, const double *, double, double *);
@@ -43,8 +41,6 @@ PRIVATE void right_mult_with_vector_transpose
 	(double **, int, int, double *, double *);
 PRIVATE void right_mult_with_vector_d(double *const *, int, int, double *,
                                       double *);
-PRIVATE void mult_dense_mat(double **, float **, int, int, int,
-			       float ***C);
 PRIVATE void mult_dense_mat_d(double **, float **, int, int, int,
 				 double ***CC);
 PRIVATE void mult_sparse_dense_mat_transpose(vtx_data *, double **, int,

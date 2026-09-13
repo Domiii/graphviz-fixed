@@ -128,31 +128,6 @@ bool power_iteration(double *const *square_mat, int n, int neigs, double **eigs)
 }
 
 void
-mult_dense_mat(double **A, float **B, int dim1, int dim2, int dim3,
-	       float ***CC)
-{
-  // A is dim1 × dim2, B is dim2 × dim3, C = A × B
-
-    float *storage = gv_calloc(dim1 * dim3, sizeof(storage[0]));
-    float **const C = *CC = gv_calloc(dim1, sizeof(C[0]));
-
-    for (int i = 0; i < dim1; i++) {
-	C[i] = storage;
-	storage += dim3;
-    }
-
-    for (int i = 0; i < dim1; i++) {
-	for (int j = 0; j < dim3; j++) {
-	    double sum = 0;
-	    for (int k = 0; k < dim2; k++) {
-		sum += A[i][k] * B[k][j];
-	    }
-	    C[i][j] = (float)sum;
-	}
-    }
-}
-
-void
 mult_dense_mat_d(double **A, float **B, int dim1, int dim2, int dim3,
 		 double ***CC)
 {
@@ -269,21 +244,6 @@ right_mult_with_vector(vtx_data * matrix, int n, double *vector,
 	res = 0;
 	for (size_t j = 0; j < matrix[i].nedges; j++)
 	    res += matrix[i].ewgts[j] * vector[matrix[i].edges[j]];
-	result[i] = res;
-    }
-}
-
-void
-right_mult_with_vector_f(float **matrix, int n, double *vector,
-			 double *result)
-{
-    int i, j;
-
-    double res;
-    for (i = 0; i < n; i++) {
-	res = 0;
-	for (j = 0; j < n; j++)
-	    res += matrix[i][j] * vector[j];
 	result[i] = res;
     }
 }

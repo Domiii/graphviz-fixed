@@ -30,8 +30,8 @@ PRIVATE int conjugate_gradient(vtx_data *, double *, double *, int,
  * C.G. method - DENSE   *
  ************************/
 
-PRIVATE int conjugate_gradient_f(float **, double *, double *, int,
-				     double, int, bool);
+PRIVATE int conjugate_gradient_d(double **, double *, double *, int, double,
+                                 int, bool);
 
 PRIVATE int conjugate_gradient_mkernel(float *, float *, float *, int,
 					   double, int);

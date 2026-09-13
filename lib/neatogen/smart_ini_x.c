@@ -259,7 +259,7 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 	double* x = given_coords;	
 	double uniLength;
 	double* y = new_coords;
-	float **lap = gv_calloc(n, sizeof(float *));
+	double **const lap = gv_calloc(n, sizeof(double *));
 	double *balance = gv_calloc(n, sizeof(double));
 	bool converged;
 
@@ -292,15 +292,15 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 	CMDS_orthog(n, 1, &y, conj_tol, x, Dij);
 	
 	/* Compute Laplacian: */
-	float *f_storage = gv_calloc(n * n, sizeof(float));
+	double *f_storage = gv_calloc(n * n, sizeof(double));
 	
 	for (int i = 0; i < n; i++) {
 		lap[i]=f_storage+i*n;
-		float degree = 0;
+		double degree = 0;
 		for (int j = 0; j < n; j++) {
 			if (j==i)
 				continue;
-			degree-=lap[i][j]=-1.0f/((float)Dij[i][j]*(float)Dij[i][j]); // w_{ij}
+			degree -= lap[i][j] = -1.0 / ((double)Dij[i][j] * Dij[i][j]); // w_{ij}
 			
 		}
 		lap[i][i]=degree;
@@ -337,7 +337,7 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 	}
 
 	for (converged=false,iterations2=0; iterations2<200 && !converged; iterations2++) {
-		if (conjugate_gradient_f(lap, y, balance, n, conj_tol, n, true) < 0) {
+		if (conjugate_gradient_d(lap, y, balance, n, conj_tol, n, true) < 0) {
 		    rv = 1;
 		    goto cleanup;
 		}
