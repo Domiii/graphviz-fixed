@@ -513,7 +513,7 @@ int isConnected(Agraph_t *g) {
 
   const size_t cnt = dfs(g, agfstnode(g), NULL, &stk);
   freeStk(&stk);
-  if (cnt != (size_t)agnnodes(g))
+  if (cnt != agnnodes_z(g))
     return 0;
   return 1;
 }
