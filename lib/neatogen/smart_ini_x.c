@@ -255,7 +255,6 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 {
 	int iterations2;
 	int rv = 0;
-	DistType** Dij;
 	double* x = given_coords;	
 	double uniLength;
 	double* y = new_coords;
@@ -266,7 +265,7 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 	double b;
 	bool converged;
 
-	Dij = compute_apsp(graph, n);
+	DistType **const Dij = compute_apsp(graph, n);
 	
 	/* scaling up the distances to enable an 'sqrt' operation later 
      * (in case distances are integers)
