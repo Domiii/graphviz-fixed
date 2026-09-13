@@ -199,7 +199,7 @@ static cluster_data cluster_map(graph_t *mastergraph, graph_t *g) {
     graph_t *subg;
     node_t *n;
      /* array of arrays of node indices in each cluster */
-    bitarray_t assigned = bitarray_new(agnnodes(g));
+    bitarray_t assigned = bitarray_new(agnnodes_z(g));
     cluster_data cdata = {0};
 
     size_t nclusters = 0;
