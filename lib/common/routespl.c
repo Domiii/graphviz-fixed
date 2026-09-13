@@ -938,7 +938,7 @@ static pointf get_cycle_centroid(graph_t *g, edge_t* edge)
 
 static void bend(pointf spl[4], pointf centroid)
 {
-    pointf midpt = mid_pointf(spl[0], spl[3]);
+    const pointf midpt = mid_pointf(spl[0], spl[3]);
     double dist = DIST(spl[3], spl[0]);
     const double r = dist / 5.0;
     double vX = centroid.x - midpt.x;
