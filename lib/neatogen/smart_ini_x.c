@@ -259,7 +259,6 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 	double uniLength;
 	double* y = new_coords;
 	float **lap = gv_calloc(n, sizeof(float *));
-	float degree;
 	double pos_i;
 	double *balance = gv_calloc(n, sizeof(double));
 	double b;
@@ -298,7 +297,7 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 	
 	for (int i = 0; i < n; i++) {
 		lap[i]=f_storage+i*n;
-		degree=0;
+		float degree = 0;
 		for (int j = 0; j < n; j++) {
 			if (j==i)
 				continue;
