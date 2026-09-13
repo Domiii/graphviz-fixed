@@ -254,7 +254,7 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
        double* new_coords, double conj_tol)
 {
 	int iterations2;
-	int j, rv = 0;
+	int rv = 0;
 	DistType** Dij;
 	double* x = given_coords;	
 	double uniLength;
@@ -272,7 +272,7 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
      * (in case distances are integers)
      */
 	for (int i = 0; i < n; i++)
-		for (j=0; j<n; j++)
+		for (int j = 0; j < n; j++)
 			Dij[i][j]*=SCALE_FACTOR;
 	
 	assert(x!=NULL);
@@ -281,7 +281,7 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 		double sum2 = 0;
 	
 		for (int i = 1; i < n; i++) {
-			for (j=0; j<i; j++) {		
+			for (int j = 0; j < i; j++) {		
 				sum1+=1.0/(Dij[i][j])*fabs(x[i]-x[j]);
 				sum2+=1.0/(Dij[i][j]*Dij[i][j])*fabs(x[i]-x[j])*fabs(x[i]-x[j]);
 			}
@@ -300,7 +300,7 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 	for (int i = 0; i < n; i++) {
 		lap[i]=f_storage+i*n;
 		degree=0;
-		for (j=0; j<n; j++) {
+		for (int j = 0; j < n; j++) {
 			if (j==i)
 				continue;
 			degree-=lap[i][j]=-1.0f/((float)Dij[i][j]*(float)Dij[i][j]); // w_{ij}
@@ -316,7 +316,7 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 		double diff;
 		for (int i = 1; i < n; i++) {
 			pos_i=x[i];		
-			for (j=0; j<i; j++) {
+			for (int j = 0; j < i; j++) {
 				diff=(double)Dij[i][j]*(double)Dij[i][j]-(pos_i-x[j])*(pos_i-x[j]);
 				Dij[i][j]=Dij[j][i]=diff>0 ? (DistType)sqrt(diff) : 0;
 			}
@@ -327,7 +327,7 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 	for (int i = 0; i < n; i++) {
 		pos_i=y[i];
 		balance[i]=0;
-		for (j=0; j<n; j++) {
+		for (int j = 0; j < n; j++) {
 			if (j==i)
 				continue;
 			if (pos_i>=y[j]) {
@@ -348,7 +348,7 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 		for (int i = 0; i < n; i++) {
 			pos_i=y[i];
 			b=0;
-			for (j=0; j<n; j++) {
+			for (int j = 0; j < n; j++) {
 				if (j==i)
 					continue;
 				if (pos_i>=y[j]) {
