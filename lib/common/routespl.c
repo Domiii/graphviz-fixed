@@ -941,7 +941,7 @@ static void bend(pointf spl[4], pointf centroid)
     const pointf midpt = mid_pointf(spl[0], spl[3]);
     const double dist = DIST(spl[3], spl[0]);
     const double r = dist / 5.0;
-    double vX = centroid.x - midpt.x;
+    const double vX = centroid.x - midpt.x;
     double vY = centroid.y - midpt.y;
     double magV = hypot(vX, vY);
     // if midpoint == centroid, do not divide by zero
