@@ -938,21 +938,18 @@ static pointf get_cycle_centroid(graph_t *g, edge_t* edge)
 
 static void bend(pointf spl[4], pointf centroid)
 {
-    pointf  a;
     double  r;
 
     pointf midpt = mid_pointf(spl[0], spl[3]);
     double dist = DIST(spl[3], spl[0]);
     r = dist/5.0;
-    {
-        double vX = centroid.x - midpt.x;
-        double vY = centroid.y - midpt.y;
-        double magV = hypot(vX, vY);
-	// if midpoint == centroid, do not divide by zero
-	if (is_exactly_zero(magV) || is_exactly_equal(magV, -0.0)) return;
-        a.x = midpt.x - vX / magV * r;      /* + would be closest point */
-        a.y = midpt.y - vY / magV * r;
-    }
+    double vX = centroid.x - midpt.x;
+    double vY = centroid.y - midpt.y;
+    double magV = hypot(vX, vY);
+    // if midpoint == centroid, do not divide by zero
+    if (is_exactly_zero(magV) || is_exactly_equal(magV, -0.0)) return;
+    const pointf a = {.x = midpt.x - vX / magV * r,
+                      .y = midpt.y - vY / magV * r}; // + would be closest point
     /* this can be improved */
     spl[1].x = spl[2].x = a.x;
     spl[1].y = spl[2].y = a.y;
