@@ -254,7 +254,7 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
        double* new_coords, double conj_tol)
 {
 	int iterations2;
-	int i,j, rv = 0;
+	int j, rv = 0;
 	DistType** Dij;
 	double* x = given_coords;	
 	double uniLength;
@@ -271,22 +271,23 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 	/* scaling up the distances to enable an 'sqrt' operation later 
      * (in case distances are integers)
      */
-	for (i=0; i<n; i++)
+	for (int i = 0; i < n; i++)
 		for (j=0; j<n; j++)
 			Dij[i][j]*=SCALE_FACTOR;
 	
 	assert(x!=NULL);
 	{
-		double sum1, sum2;
+		double sum1 = 0;
+		double sum2 = 0;
 	
-		for (sum1=sum2=0,i=1; i<n; i++) {
+		for (int i = 1; i < n; i++) {
 			for (j=0; j<i; j++) {		
 				sum1+=1.0/(Dij[i][j])*fabs(x[i]-x[j]);
 				sum2+=1.0/(Dij[i][j]*Dij[i][j])*fabs(x[i]-x[j])*fabs(x[i]-x[j]);
 			}
 		}
 		uniLength = isinf(sum2) ? 0 : sum1 / sum2;
-		for (i=0; i<n; i++)
+		for (int i = 0; i < n; i++)
 			x[i]*=uniLength;
 	}
 
@@ -296,7 +297,7 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 	/* Compute Laplacian: */
 	float *f_storage = gv_calloc(n * n, sizeof(float));
 	
-	for (i=0; i<n; i++) {
+	for (int i = 0; i < n; i++) {
 		lap[i]=f_storage+i*n;
 		degree=0;
 		for (j=0; j<n; j++) {
@@ -313,7 +314,7 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 	/* if (x!=NULL)  */
     {
 		double diff;
-		for (i=1; i<n; i++) {
+		for (int i = 1; i < n; i++) {
 			pos_i=x[i];		
 			for (j=0; j<i; j++) {
 				diff=(double)Dij[i][j]*(double)Dij[i][j]-(pos_i-x[j])*(pos_i-x[j]);
@@ -323,7 +324,7 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 	}
 	
 	/* Compute the balance vector: */
-	for (i=0; i<n; i++) {
+	for (int i = 0; i < n; i++) {
 		pos_i=y[i];
 		balance[i]=0;
 		for (j=0; j<n; j++) {
@@ -344,7 +345,7 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 		    goto cleanup;
 		}
 		converged = true;
-		for (i=0; i<n; i++) {
+		for (int i = 0; i < n; i++) {
 			pos_i=y[i];
 			b=0;
 			for (j=0; j<n; j++) {
@@ -366,7 +367,7 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 		}
 	}
 	
-	for (i = 0; !(fabs(uniLength) < DBL_EPSILON) && i < n; i++) {
+	for (int i = 0; !(fabs(uniLength) < DBL_EPSILON) && i < n; i++) {
 		x[i] /= uniLength;
 		y[i] /= uniLength;
 	}
