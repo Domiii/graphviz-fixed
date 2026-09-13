@@ -21,6 +21,8 @@ and this project adheres to
   Using `$F` in these clauses is rejected. #2858
 - Inducing a labeled non-adjacent flat edge to/from a rank 0 node no longer
   causes `dot` to crash. #2756
+- If routing produces bounding boxes that all have close-to-zero area, `dot`
+  exits with an error message instead of crashing. #2773, #2774, #2776, #2778
 
 ## [16.1.0] – 2026-09-03
 

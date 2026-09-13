@@ -648,6 +648,12 @@ static int checkpath(size_t boxn, boxf *boxes, path *thepath) {
     }
     boxn = i;
 
+    if (boxn == 0) {
+	agerrorf("in checkpath, all bounding boxes are below threshold\n");
+	printpath(thepath);
+	return 1;
+    }
+
     ba = &boxes[0];
     if (ba->LL.x > ba->UR.x || ba->LL.y > ba->UR.y) {
 	agerrorf("in checkpath, box 0 has LL coord > UR coord\n");
