@@ -86,8 +86,7 @@ static void patchwork_init_node_edge(graph_t * g)
     node_t *n;
     edge_t *e;
     int i = 0;
-    assert(agnnodes(g) >= 0);
-    const size_t nnodes = (size_t)agnnodes(g);
+    const size_t nnodes = agnnodes_z(g);
     rdata* alg = gv_calloc(nnodes, sizeof(rdata));
 
     GD_neato_nlist(g) = gv_calloc(nnodes + 1, sizeof(node_t*));
