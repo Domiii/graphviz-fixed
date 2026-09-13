@@ -260,7 +260,6 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 	double* y = new_coords;
 	float **lap = gv_calloc(n, sizeof(float *));
 	double *balance = gv_calloc(n, sizeof(double));
-	double b;
 	bool converged;
 
 	DistType **const Dij = compute_apsp(graph, n);
@@ -344,7 +343,7 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 		converged = true;
 		for (int i = 0; i < n; i++) {
 			const double pos_i = y[i];
-			b=0;
+			double b = 0;
 			for (int j = 0; j < n; j++) {
 				if (j==i)
 					continue;
