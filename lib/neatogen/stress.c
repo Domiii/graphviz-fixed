@@ -471,7 +471,7 @@ static int sparse_stress_subspace_majorization_kD(vtx_data * graph,	/* Input gra
 	if (exp == 2) {
 	    for (size_t j = 1; j < lap[i].nedges; j++) {
 		edges[j] = distances[i].edges[j - 1];
-		ewgts[j] = (float) -1.0 / ((float) dist_list[j] * (float) dist_list[j]);	/* cast to float to prevent overflow */
+		ewgts[j] = -1.0f / ((float)dist_list[j] * (float)dist_list[j]); // cast to float to prevent overflow
 		degree -= ewgts[j];
 	    }
 	} else {
