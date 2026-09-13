@@ -27,9 +27,13 @@
 #include <stdlib.h>
 #include <util/alloc.h>
 #include <util/gv_math.h>
+#include <util/unused.h>
 
 static int nsiter2(graph_t * g);
-static void create_aux_edges(graph_t * g);
+
+/// @return 0 on success
+static WUR int create_aux_edges(graph_t *g);
+
 static void remove_aux_edges(graph_t * g);
 static void set_xcoords(graph_t * g);
 static void set_ycoords(graph_t * g);
@@ -59,16 +63,6 @@ dumpNS (graph_t * g)
     }
 }
 #endif
-
-static double
-largeMinlen (double l)
-{
-  agerrorf(
-        "Edge length %f larger than maximum %d allowed.\nCheck for overwide "
-        "node(s).\n",
-        l, INT_MAX);
-  return INT_MAX;
-}
 
 /* When source and/or sink nodes are defined, it is possible that
  * after the auxiliary edges are added, the graph may still have 2 or
@@ -138,7 +132,12 @@ int dot_position(graph_t *g) {
     expand_leaves(g);
     if (flat_edges(g))
 	set_ycoords(g);
-    create_aux_edges(g);
+    {
+	const int rc = create_aux_edges(g);
+	if (rc != 0) {
+	    return rc;
+	}
+    }
     if (rank(g, 2, nsiter2(g))) { /* LR balance == 2 */
 	connectGraph (g);
 	const int rank_result = rank(g, 2, nsiter2(g));
@@ -190,8 +189,14 @@ edge_t *make_aux_edge(node_t * u, node_t * v, double len, int wt)
 
     agtail(e) = u;
     aghead(e) = v;
-    if (len > INT_MAX)
-	len = largeMinlen (len);
+    if (len > INT_MAX) {
+	agerrorf(
+	  "Edge length %f larger than maximum %d allowed.\nCheck for overwide "
+	  "node(s).\n", len, INT_MAX);
+	free(e2->out.base.data);
+	free(e2);
+	return NULL;
+    }
     ED_minlen(e) = ROUND(len);
     ED_weight(e) = wt;
     fast_edge(e);
@@ -215,9 +220,8 @@ static void allocate_aux_edges(graph_t * g)
     }
 }
 
-static void 
-make_LR_constraints(graph_t * g)
-{
+/// @return 0 on success
+static WUR int make_LR_constraints(graph_t *g) {
     int i, j;
     int m0;
     double width;
@@ -263,6 +267,9 @@ make_LR_constraints(graph_t * g)
 	    if (v) {
 		width = ND_rw(u) + ND_lw(v) + nodesep;
 		e0 = make_aux_edge(u, v, width, 0);
+		if (e0 == NULL) {
+		    return -1;
+		}
 		last = (ND_rank(v) = last + width);
 	    }
 
@@ -278,12 +285,14 @@ make_LR_constraints(graph_t * g)
 		/* these guards are needed because the flat edges
 		 * work very poorly with cluster layout */
 		if (!canreach(agtail(e0), aghead(e0)))
-		    make_aux_edge(aghead(e0), agtail(e0), m1,
-			ED_weight(e));
+		    if (make_aux_edge(aghead(e0), agtail(e0), m1, ED_weight(e)) == NULL) {
+			return -1;
+		    }
 		m1 = m0 + ND_rw(agtail(e1)) + ND_lw(aghead(e1));
 		if (!canreach(aghead(e1), agtail(e1)))
-		    make_aux_edge(agtail(e1), aghead(e1), m1,
-			ED_weight(e));
+		    if (make_aux_edge(agtail(e1), aghead(e1), m1, ED_weight(e)) == NULL) {
+			return -1;
+		    }
 	    }
 
 	    /* position flat edge endpoints */
@@ -313,7 +322,9 @@ make_LR_constraints(graph_t * g)
 		     * ED_minlen(e) is max of ED_minlen of all equivalent 
                      * edges.
                      */
-		    make_aux_edge(t0, h0, m0, ED_weight(e));
+		    if (make_aux_edge(t0, h0, m0, ED_weight(e)) == NULL) {
+			return -1;
+		    }
 		}
 		/* labeled flat edges between non-neighbors have already
                  * been constrained by the label above. 
@@ -321,11 +332,13 @@ make_LR_constraints(graph_t * g)
 	    }
 	}
     }
+    return 0;
 }
 
 /// make virtual edge pairs corresponding to input edges
-static void make_edge_pairs(graph_t * g)
-{
+///
+/// @return 0 on success
+static WUR int make_edge_pairs(graph_t *g) {
     int i, m0, m1;
     node_t *n, *sn;
     edge_t *e;
@@ -342,13 +355,18 @@ static void make_edge_pairs(graph_t * g)
 		    m1 = -m0;
 		    m0 = 0;
 		}
-		make_aux_edge(sn, agtail(e), m0 + 1, ED_weight(e));
-		make_aux_edge(sn, aghead(e), m1 + 1, ED_weight(e));
+		if (make_aux_edge(sn, agtail(e), m0 + 1, ED_weight(e)) == NULL) {
+		    return -1;
+		}
+		if (make_aux_edge(sn, aghead(e), m1 + 1, ED_weight(e)) == NULL) {
+		    return -1;
+		}
 		ND_rank(sn) =
 		    MIN(ND_rank(agtail(e)) - m0 - 1,
 			ND_rank(aghead(e)) - m1 - 1);
 	    }
     }
+    return 0;
 }
 
 static void contain_clustnodes(graph_t * g)
@@ -522,13 +540,23 @@ static void compress_graph(graph_t * g)
     make_aux_edge(GD_ln(g), GD_rn(g), x, 1000);
 }
 
-static void create_aux_edges(graph_t * g)
-{
+static int create_aux_edges(graph_t *g) {
     allocate_aux_edges(g);
-    make_LR_constraints(g);
-    make_edge_pairs(g);
+    {
+        const int rc = make_LR_constraints(g);
+        if (rc != 0) {
+          return rc;
+        }
+    }
+    {
+        const int rc = make_edge_pairs(g);
+        if (rc != 0) {
+          return rc;
+        }
+    }
     pos_clusters(g);
     compress_graph(g);
+    return 0;
 }
 
 static void remove_aux_edges(graph_t * g)

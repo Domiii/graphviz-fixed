@@ -15,6 +15,8 @@ and this project adheres to
 - Cluster representatives in the derived graph are now anonymous nodes,
   preventing a potential heap overrun by name collision with ordinary nodes.
   \#2768, #2769
+- A crash when setting an excessively large minimum node height has been fixed.
+  \#2781
 
 ## [16.1.0] – 2026-09-03
 
