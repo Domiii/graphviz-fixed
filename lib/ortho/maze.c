@@ -14,6 +14,8 @@
 #define DEBUG
 
 #include <assert.h>
+#include <cgraph/cgraph.h>
+#include <common/geomprocs.h>
 #include <float.h>
 #include <limits.h>
 #include <math.h>
@@ -450,30 +452,22 @@ chkSgraph (g);
 /// creates @ref maze and fills @ref maze::gcells and @ref maze::cells. A subroutine of @ref orthoEdges.
 
 maze *mkMaze(graph_t *g) {
-    node_t* n;
     maze* mp = gv_alloc(sizeof(maze));
     boxf* rects;
-    cell* cp;
-    double w2, h2;
-    boxf bb;
 
-    assert(agnnodes(g) >= 0);
-    mp->ngcells = (size_t)agnnodes(g);
-    cp = mp->gcells = gv_calloc(mp->ngcells, sizeof(cell));
+    mp->ngcells = agnnodes_z(g);
+    cell *cp = mp->gcells = gv_calloc(mp->ngcells, sizeof(cell));
 
     boxf BB = {.LL = {.x = DBL_MAX, .y = DBL_MAX},
                .UR = {.x = -DBL_MAX, .y = -DBL_MAX}};
-    for (n = agfstnode (g); n; n = agnxtnode(g,n)) {
-        w2 = fmax(1, ND_xsize(n) / 2.0);
-        h2 = fmax(1, ND_ysize(n) / 2.0);
-        bb.LL.x = ND_coord(n).x - w2;
-        bb.UR.x = ND_coord(n).x + w2;
-        bb.LL.y = ND_coord(n).y - h2;
-        bb.UR.y = ND_coord(n).y + h2;
-	BB.LL.x = fmin(BB.LL.x, bb.LL.x);
-	BB.LL.y = fmin(BB.LL.y, bb.LL.y);
-	BB.UR.x = fmax(BB.UR.x, bb.UR.x);
-	BB.UR.y = fmax(BB.UR.y, bb.UR.y);
+    for (node_t *n = agfstnode (g); n; n = agnxtnode(g, n)) {
+        const double w2 = fmax(1, ND_xsize(n) / 2.0);
+        const double h2 = fmax(1, ND_ysize(n) / 2.0);
+        const boxf bb = {.LL = {.x = ND_coord(n).x - w2,
+                                .y = ND_coord(n).y - h2},
+                         .UR = {.x = ND_coord(n).x + w2,
+                                .y = ND_coord(n).y + h2}};
+	expandbbf(&BB, bb);
         cp->bb = bb;
 	cp->flags |= MZ_ISNODE;
         ND_alg(n) = cp;

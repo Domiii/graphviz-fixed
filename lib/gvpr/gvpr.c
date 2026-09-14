@@ -1042,6 +1042,7 @@ static int gvpr_core(int argc, char *argv[], gvpropts *uopts,
 
       if (!incoreGraphs)
         chkClose(gs->state->curgraph);
+      gs->state->infname = NULL;
       gs->state->target = 0;
       gs->state->outgraph = 0;
 

@@ -1477,7 +1477,14 @@ static Extype_t getval(Expr_t *pgm, Exnode_t *node, Exid_t *sym, Exref_t *ref,
       v.string = state->tgtname;
       break;
     case V_infname:
-      v.string = state->infname;
+      if (state->infname == NULL) {
+        agxbuf xb = {0};
+        exerror("current input file is not defined for %s",
+                deparse(pgm, node, &xb));
+        agxbfree(&xb);
+      } else {
+        v.string = state->infname;
+      }
       break;
     case V_ARGC: {
       const size_t size = LIST_SIZE(&state->args);
