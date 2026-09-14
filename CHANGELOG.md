@@ -23,6 +23,7 @@ and this project adheres to
   causes `dot` to crash. #2756
 - If routing produces bounding boxes that all have close-to-zero area, `dot`
   exits with an error message instead of crashing. #2773, #2774, #2776, #2778
+- A crash when using cluster subgraphs has been fixed. #2368, #2854
 
 ## [16.1.0] – 2026-09-03
 

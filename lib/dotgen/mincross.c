@@ -1341,6 +1341,7 @@ static void flat_reorder(graph_t *g) {
     LIST_CLEAR(&temprank);
 
     /* construct reverse topological sort order in temprank */
+    bool valid_rank = true;
     for (i = 0; i < GD_rank(g)[r].n; i++) {
       if (GD_flip(g))
         v = GD_rank(g)[r].v[i];
@@ -1360,14 +1361,15 @@ static void flat_reorder(graph_t *g) {
       }
       if (local_in_cnt == 0 && local_out_cnt == 0)
         LIST_APPEND(&temprank, v);
-      else {
-        if (!MARK(v) && local_in_cnt == 0) {
-          postorder(g, v, &temprank, r);
-        }
+      else if (!MARK(v) && local_in_cnt == 0) {
+        postorder(g, v, &temprank, r);
+      } else {
+        valid_rank = false;
+        break;
       }
     }
 
-    if (!LIST_IS_EMPTY(&temprank)) {
+    if (valid_rank && !LIST_IS_EMPTY(&temprank)) {
       if (!GD_flip(g)) {
         LIST_REVERSE(&temprank);
       }
