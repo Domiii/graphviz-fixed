@@ -310,20 +310,15 @@ static int setattr(Agobj_t *objp, char *name, char *val) {
 }
 
 static char *kindToStr(int kind) {
-  char *s;
-
   switch (kind) {
   case AGRAPH:
-    s = "graph";
-    break;
+    return "graph";
   case AGNODE:
-    s = "node";
-    break;
+    return "node";
   default:
-    s = "edge";
     break;
   }
-  return s;
+  return "edge";
 }
 
 // return string rep of object’s kind
