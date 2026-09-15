@@ -19,6 +19,8 @@ and this project adheres to
   \#2781
 - gvpr no longer crashes when encountering `$F` in a `BEGIN` or `END` clause.
   Using `$F` in these clauses is rejected. #2858
+- Inducing a labeled non-adjacent flat edge to/from a rank 0 node no longer
+  causes `dot` to crash. #2756
 
 ## [16.1.0] – 2026-09-03
 

@@ -6327,6 +6327,76 @@ def test_2743():
     dot("dot", src)
 
 
+@pytest.mark.parametrize("variant", ("2756.dot", "2756_1.dot"))
+def test_2756(variant: str):
+    """
+    Graphviz should not crash when processing this graph
+    https://gitlab.com/graphviz/graphviz/-/issues/2756
+    """
+
+    # locate our associated test case in this directory
+    src = Path(__file__).parent / variant
+    assert src.exists(), "unexpectedly missing test case"
+
+    # run this through Graphviz
+    try:
+        dot("dot", src)
+    except subprocess.CalledProcessError as e:
+        # only fail if we crashed, not exited with failure
+        if e.returncode != 1:
+            raise
+
+
+@pytest.mark.xfail(
+    raises=subprocess.CalledProcessError,
+    reason="https://gitlab.com/graphviz/graphviz/-/issues/2759",
+    strict=which("dot") is not None and is_asan_instrumented(which("dot")),
+)
+@pytest.mark.parametrize("variant", ("2759.dot", "2759_1.dot"))
+def test_2759(variant: str):
+    """
+    Graphviz should not crash when processing this graph
+    https://gitlab.com/graphviz/graphviz/-/issues/2759
+    """
+
+    # locate our associated test case in this directory
+    src = Path(__file__).parent / variant
+    assert src.exists(), "unexpectedly missing test case"
+
+    # run this through Graphviz
+    try:
+        dot("dot", src)
+    except subprocess.CalledProcessError as e:
+        # only fail if we crashed, not exited with failure
+        if e.returncode != 1:
+            raise
+
+
+@pytest.mark.xfail(
+    raises=subprocess.CalledProcessError,
+    reason="https://gitlab.com/graphviz/graphviz/-/issues/2765",
+    strict=which("dot") is not None and is_asan_instrumented(which("dot")),
+)
+@pytest.mark.parametrize("variant", ("2765.dot", "2765_1.dot"))
+def test_2765(variant: str):
+    """
+    Graphviz should not crash when processing this graph
+    https://gitlab.com/graphviz/graphviz/-/issues/2765
+    """
+
+    # locate our associated test case in this directory
+    src = Path(__file__).parent / variant
+    assert src.exists(), "unexpectedly missing test case"
+
+    # run this through Graphviz
+    try:
+        dot("dot", src)
+    except subprocess.CalledProcessError as e:
+        # only fail if we crashed, not exited with failure
+        if e.returncode != 1:
+            raise
+
+
 @pytest.mark.parametrize("variant", ("2768.dot", "2768_1.dot", "2768_2.dot"))
 def test_2768(variant: str):
     """
