@@ -321,7 +321,7 @@ static char *kindToStr(int kind) {
   return "edge";
 }
 
-// return string rep of object’s kind
+/// string representation of object’s kind
 static char *kindOf(Agobj_t *objp) { return kindToStr(agobjkind(objp)); }
 
 /* Apply symbol to get field value of objp
