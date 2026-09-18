@@ -43,6 +43,9 @@ static int ioput(Agraph_t *g, iochan_t *ofile, char *str) {
 static int Max_outputline = MAX_OUTPUTLINE;
 static Agsym_t *Tailport, *Headport;
 
+/// sentinel marking an edge that has already been written out
+static Agedge_t *const EDGE_DONE = (Agedge_t *)-1;
+
 typedef struct {
   uint64_t *preorder_number; // of a graph or subgraph
   uint64_t
@@ -660,15 +663,13 @@ static int write_edge(Agedge_t *e, iochan_t *ofile, Dict_t *d,
 /// @return 0 on success
 static int write_edges(iochan_t *ofile, Dict_t *d, write_info_t *wr_info) {
   for (size_t i = 0; i < wr_info->n_edges; ++i) {
-    if (wr_info->edges[i] == NULL) {
+    if (wr_info->edges[i] == NULL || wr_info->edges[i] == EDGE_DONE) {
       continue;
     }
     if (write_edge(wr_info->edges[i], ofile, d, wr_info) == EOF) {
       return EOF;
     }
-
-    // blank the entry so it can be reused by sibling subgraphs
-    wr_info->edges[i] = NULL;
+    wr_info->edges[i] = EDGE_DONE;
   }
   return 0;
 }
@@ -698,7 +699,9 @@ static int write_body(Agraph_t *g, iochan_t *ofile, write_info_t *wr_info) {
         prev = aghead(e);
       }
       // pend this edge to be emitted later
-      wr_info->edges[AGSEQ(e)] = e;
+      if (wr_info->edges[AGSEQ(e)] != EDGE_DONE) {
+        wr_info->edges[AGSEQ(e)] = e;
+      }
     }
   }
   // flush pending edges to the output file

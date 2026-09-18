@@ -6976,11 +6976,6 @@ def test_2858_1(with_graph: bool):
             raise
 
 
-@pytest.mark.xfail(
-    raises=AssertionError,
-    reason="https://gitlab.com/graphviz/graphviz/-/issues/2860",
-    strict=True,
-)
 @pytest.mark.parametrize("variant", ("2860.dot", "2860_1.dot"))
 def test_2860(variant: str):
     """
