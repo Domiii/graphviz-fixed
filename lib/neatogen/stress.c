@@ -281,7 +281,6 @@ static int sparse_stress_subspace_majorization_kD(vtx_data * graph,	/* Input gra
     double degree;
     double **directions;
     float **tmp_mat;
-    float **matrix;
     double dist_ij;
     double *b;
     double *b_restricted;
@@ -472,7 +471,7 @@ static int sparse_stress_subspace_majorization_kD(vtx_data * graph,	/* Input gra
 	if (exp == 2) {
 	    for (size_t j = 1; j < lap[i].nedges; j++) {
 		edges[j] = distances[i].edges[j - 1];
-		ewgts[j] = (float) -1.0 / ((float) dist_list[j] * (float) dist_list[j]);	/* cast to float to prevent overflow */
+		ewgts[j] = -1.0f / ((float)dist_list[j] * (float)dist_list[j]); // cast to float to prevent overflow
 		degree -= ewgts[j];
 	    }
 	} else {
@@ -548,11 +547,10 @@ static int sparse_stress_subspace_majorization_kD(vtx_data * graph,	/* Input gra
 	*************************************************/
 
     tmp_mat = NULL;
-    matrix = NULL;
+    double **matrix = NULL;
     mult_sparse_dense_mat_transpose(lap, subspace, n, subspace_dim,
 				    &tmp_mat);
-    mult_dense_mat(subspace, tmp_mat, subspace_dim, n, subspace_dim,
-		   &matrix);
+    mult_dense_mat_d(subspace, tmp_mat, subspace_dim, n, subspace_dim, &matrix);
     free(tmp_mat[0]);
     free(tmp_mat);
 
@@ -590,7 +588,7 @@ static int sparse_stress_subspace_majorization_kD(vtx_data * graph,	/* Input gra
 	    }
 	    right_mult_with_vector_d(subspace, subspace_dim, n, b,
 				     b_restricted);
-	    if (conjugate_gradient_f(matrix, directions[k], b_restricted,
+	    if (conjugate_gradient_d(matrix, directions[k], b_restricted,
 				 subspace_dim, conj_tol, subspace_dim,
 				 false)) {
 		iterations = -1;

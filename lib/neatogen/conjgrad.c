@@ -89,9 +89,8 @@ cleanup0 :
 ** C.G. method - DENSE      *
 ****************************/
 
-int conjugate_gradient_f
-    (float **A, double *x, double *b, int n, double tol,
-     int max_iterations, bool ortho1) {
+int conjugate_gradient_d(double **A, double *x, double *b, int n, double tol,
+                         int max_iterations, bool ortho1) {
     /* Solves Ax=b using Conjugate-Gradients method */
     /* 'x' and 'b' are orthogonalized against 1 if 'ortho1=true' */
 
@@ -110,13 +109,13 @@ int conjugate_gradient_f
 	orthog1(n, orth_b);
 	orthog1(n, x);
     }
-    right_mult_with_vector_f(A, n, x, Ax);
+    right_mult_with_vector_d(A, n, n, x, Ax);
     vectors_subtraction(n, orth_b, Ax, r);
     copy_vector(n, r, p);
     r_r = vectors_inner_product(n, r, r);
 
     for (i = 0; i < max_iterations && max_abs(n, r) > tol; i++) {
-	right_mult_with_vector_f(A, n, p, Ap);
+	right_mult_with_vector_d(A, n, n, p, Ap);
 	p_Ap = vectors_inner_product(n, p, Ap);
 	if (p_Ap == 0)
 	    break;		/*exit(1); */

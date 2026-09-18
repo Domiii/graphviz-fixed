@@ -14,6 +14,7 @@
 #include <math.h>
 #include <neatogen/digcola.h>
 #include <util/alloc.h>
+#include <util/gv_math.h>
 #ifdef DIGCOLA
 #include <neatogen/kkutils.h>
 #include <neatogen/matrix_ops.h>
@@ -254,39 +255,36 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
        double* new_coords, double conj_tol)
 {
 	int iterations2;
-	int i,j, rv = 0;
-	DistType** Dij;
+	int rv = 0;
 	double* x = given_coords;	
 	double uniLength;
 	double* y = new_coords;
-	float **lap = gv_calloc(n, sizeof(float *));
-	float degree;
-	double pos_i;
+	double **const lap = gv_calloc(n, sizeof(double *));
 	double *balance = gv_calloc(n, sizeof(double));
-	double b;
 	bool converged;
 
-	Dij = compute_apsp(graph, n);
+	DistType **const Dij = compute_apsp(graph, n);
 	
 	/* scaling up the distances to enable an 'sqrt' operation later 
      * (in case distances are integers)
      */
-	for (i=0; i<n; i++)
-		for (j=0; j<n; j++)
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < n; j++)
 			Dij[i][j]*=SCALE_FACTOR;
 	
 	assert(x!=NULL);
 	{
-		double sum1, sum2;
+		double sum1 = 0;
+		double sum2 = 0;
 	
-		for (sum1=sum2=0,i=1; i<n; i++) {
-			for (j=0; j<i; j++) {		
+		for (int i = 1; i < n; i++) {
+			for (int j = 0; j < i; j++) {		
 				sum1+=1.0/(Dij[i][j])*fabs(x[i]-x[j]);
 				sum2+=1.0/(Dij[i][j]*Dij[i][j])*fabs(x[i]-x[j])*fabs(x[i]-x[j]);
 			}
 		}
 		uniLength = isinf(sum2) ? 0 : sum1 / sum2;
-		for (i=0; i<n; i++)
+		for (int i = 0; i < n; i++)
 			x[i]*=uniLength;
 	}
 
@@ -294,15 +292,15 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 	CMDS_orthog(n, 1, &y, conj_tol, x, Dij);
 	
 	/* Compute Laplacian: */
-	float *f_storage = gv_calloc(n * n, sizeof(float));
+	double *f_storage = gv_calloc(n * n, sizeof(double));
 	
-	for (i=0; i<n; i++) {
+	for (int i = 0; i < n; i++) {
 		lap[i]=f_storage+i*n;
-		degree=0;
-		for (j=0; j<n; j++) {
+		double degree = 0;
+		for (int j = 0; j < n; j++) {
 			if (j==i)
 				continue;
-			degree-=lap[i][j]=-1.0f/((float)Dij[i][j]*(float)Dij[i][j]); // w_{ij}
+			degree -= lap[i][j] = -1.0 / ((double)Dij[i][j] * Dij[i][j]); // w_{ij}
 			
 		}
 		lap[i][i]=degree;
@@ -313,9 +311,9 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 	/* if (x!=NULL)  */
     {
 		double diff;
-		for (i=1; i<n; i++) {
-			pos_i=x[i];		
-			for (j=0; j<i; j++) {
+		for (int i = 1; i < n; i++) {
+			const double pos_i = x[i];		
+			for (int j = 0; j < i; j++) {
 				diff=(double)Dij[i][j]*(double)Dij[i][j]-(pos_i-x[j])*(pos_i-x[j]);
 				Dij[i][j]=Dij[j][i]=diff>0 ? (DistType)sqrt(diff) : 0;
 			}
@@ -323,10 +321,10 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 	}
 	
 	/* Compute the balance vector: */
-	for (i=0; i<n; i++) {
-		pos_i=y[i];
+	for (int i = 0; i < n; i++) {
+		const double pos_i = y[i];
 		balance[i]=0;
-		for (j=0; j<n; j++) {
+		for (int j = 0; j < n; j++) {
 			if (j==i)
 				continue;
 			if (pos_i>=y[j]) {
@@ -339,15 +337,15 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 	}
 
 	for (converged=false,iterations2=0; iterations2<200 && !converged; iterations2++) {
-		if (conjugate_gradient_f(lap, y, balance, n, conj_tol, n, true) < 0) {
+		if (conjugate_gradient_d(lap, y, balance, n, conj_tol, n, true) < 0) {
 		    rv = 1;
 		    goto cleanup;
 		}
 		converged = true;
-		for (i=0; i<n; i++) {
-			pos_i=y[i];
-			b=0;
-			for (j=0; j<n; j++) {
+		for (int i = 0; i < n; i++) {
+			const double pos_i = y[i];
+			double b = 0;
+			for (int j = 0; j < n; j++) {
 				if (j==i)
 					continue;
 				if (pos_i>=y[j]) {
@@ -359,14 +357,15 @@ int IMDS_given_dim(vtx_data* graph, int n, double* given_coords,
 					
 				}
 			}
-			if ((b != balance[i]) && (fabs(1-b/balance[i])>1e-5)) {
+			if (!is_exactly_zero(balance[i]) && !is_exactly_equal(balance[i], -0.0) &&
+			    fabs(1 - b / balance[i]) > 1e-5) {
 				converged = false;
 				balance[i]=b;
 			}
 		}
 	}
 	
-	for (i = 0; !(fabs(uniLength) < DBL_EPSILON) && i < n; i++) {
+	for (int i = 0; !(fabs(uniLength) < DBL_EPSILON) && i < n; i++) {
 		x[i] /= uniLength;
 		y[i] /= uniLength;
 	}
