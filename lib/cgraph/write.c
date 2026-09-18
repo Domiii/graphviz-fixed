@@ -50,7 +50,7 @@ typedef struct {
   uint64_t *preorder_number; // of a graph or subgraph
   uint64_t
       *node_last_written; // postorder number of subg when node was last written
-  Agedge_t **edges;       // edges seen during node iteration
+  Agedge_t **edge;        ///< edges seen during node iteration
   size_t n_edges;         // items in `edges`
   int level;              // indentation level
 } write_info_t;
@@ -655,7 +655,7 @@ static int write_edge(Agedge_t *e, iochan_t *ofile, Dict_t *d,
   return ioput(g, ofile, ";\n");
 }
 
-/// write out all the edges pending in `wr_info->edges`
+/// write out all the edges pending in `wr_info->edge`
 ///
 /// @param ofile Channel to write output to
 /// @param d Attribute defaults
@@ -663,13 +663,13 @@ static int write_edge(Agedge_t *e, iochan_t *ofile, Dict_t *d,
 /// @return 0 on success
 static int write_edges(iochan_t *ofile, Dict_t *d, write_info_t *wr_info) {
   for (size_t i = 0; i < wr_info->n_edges; ++i) {
-    if (wr_info->edges[i] == NULL || wr_info->edges[i] == EDGE_DONE) {
+    if (wr_info->edge[i] == NULL || wr_info->edge[i] == EDGE_DONE) {
       continue;
     }
-    if (write_edge(wr_info->edges[i], ofile, d, wr_info) == EOF) {
+    if (write_edge(wr_info->edge[i], ofile, d, wr_info) == EOF) {
       return EOF;
     }
-    wr_info->edges[i] = EDGE_DONE;
+    wr_info->edge[i] = EDGE_DONE;
   }
   return 0;
 }
@@ -699,8 +699,8 @@ static int write_body(Agraph_t *g, iochan_t *ofile, write_info_t *wr_info) {
         prev = aghead(e);
       }
       // pend this edge to be emitted later
-      if (wr_info->edges[AGSEQ(e)] != EDGE_DONE) {
-        wr_info->edges[AGSEQ(e)] = e;
+      if (wr_info->edge[AGSEQ(e)] != EDGE_DONE) {
+        wr_info->edge[AGSEQ(e)] = e;
       }
     }
   }
@@ -775,7 +775,7 @@ static write_info_t before_write(Agraph_t *g) {
       gv_calloc(g->clos->seq[AGRAPH] + 1, sizeof(uint64_t));
   wr_info.node_last_written =
       gv_calloc(g->clos->seq[AGNODE] + 1, sizeof(uint64_t));
-  wr_info.edges = gv_calloc(g->clos->seq[AGEDGE] + 1, sizeof(wr_info.edges[0]));
+  wr_info.edge = gv_calloc(g->clos->seq[AGEDGE] + 1, sizeof(wr_info.edge[0]));
   wr_info.n_edges = g->clos->seq[AGEDGE] + 1;
   subgdfs(g, 1, &wr_info);
   return wr_info;
@@ -784,5 +784,5 @@ static write_info_t before_write(Agraph_t *g) {
 static void after_write(write_info_t wr_info) {
   free(wr_info.preorder_number);
   free(wr_info.node_last_written);
-  free(wr_info.edges);
+  free(wr_info.edge);
 }
