@@ -10,9 +10,9 @@
 
 #include "config.h"
 
+#include <cstdlib>
+#include <cstring>
 #include <memory>
-#include <stdlib.h>
-#include <string.h>
 
 #include "gvplugin_gdiplus.h"
 #include <gvc/gvplugin_textlayout.h>

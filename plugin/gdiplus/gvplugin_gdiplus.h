@@ -32,16 +32,15 @@ enum {
 
 struct DeviceContext
 {
-	HWND hwnd;
 	HDC hdc;
 
-	DeviceContext(HWND wnd = nullptr): hwnd(wnd), hdc(GetDC(wnd))
+	DeviceContext(): hdc(GetDC(nullptr))
 	{
 	}
 
 	~DeviceContext()
 	{
-		ReleaseDC(hwnd, hdc);
+		ReleaseDC(nullptr, hdc);
 	}
 
 };
@@ -56,7 +55,7 @@ struct Layout
 	Layout(char *fontname, double fontsize, char* string);
 };
 
-void gdiplus_free_layout(void *layout);
+extern "C" void gdiplus_free_layout(void *layout);
 
 void UseGdiplus();
 const Gdiplus::StringFormat* GetGenericTypographic();

@@ -45,8 +45,7 @@ typedef struct {
 	Agnode_t **ptr;
 } Stack;
 
-static void initStack(Stack * sp, int sz)
-{
+static void initStack(Stack *sp, size_t sz) {
 	sp->data = malloc(sz * sizeof(Agnode_t *));
 	sp->ptr = sp->data;
 }
@@ -229,7 +228,7 @@ static void process(Agraph_t * G)
 	if (Verbose)
 		nc = countComponents(G, &Maxdegree, &nontree_frac);
 
-	initStack(&stack, agnnodes(G) + 1);
+	initStack(&stack, agnnodes_z(G) + 1);
 	map = agopen("scc_map", Agdirected, (Agdisc_t *) 0);
 	for (n = agfstnode(G); n; n = agnxtnode(G, n))
 		if (getval(n) == 0)

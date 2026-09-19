@@ -456,7 +456,7 @@ Agraph_t **cccomps(Agraph_t *g, size_t *ncc, char *pfx) {
 
   dg = deriveGraph(g);
 
-  size_t ccs_length = (size_t)agnnodes(dg);
+  size_t ccs_length = agnnodes_z(dg);
   LIST(Agraph_t *) ccs = {0};
   LIST_RESERVE(&ccs, ccs_length);
   stk_t stk = initStk(insertFn, clMarkFn);
@@ -513,7 +513,7 @@ int isConnected(Agraph_t *g) {
 
   const size_t cnt = dfs(g, agfstnode(g), NULL, &stk);
   freeStk(&stk);
-  if (cnt != (size_t)agnnodes(g))
+  if (cnt != agnnodes_z(g))
     return 0;
   return 1;
 }
