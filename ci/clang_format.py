@@ -174,7 +174,6 @@ EXCLUDE = (
     "lib/common/ps_font_equiv.h",
     "lib/common/psusershape.c",
     "lib/common/render.h",
-    "lib/common/routespl.c",
     "lib/common/shapes.c",
     "lib/common/splines.c",
     "lib/common/taper.c",
