@@ -3916,7 +3916,6 @@ def test_2355():
 
 
 @pytest.mark.parametrize("testcase", ("2368.dot", "2368_1.dot"))
-@pytest.mark.xfail(strict=True)  # FIXME
 def test_2368(testcase: str):
     """
     routesplines should not corrupt its `prev` and `next` indices
@@ -6807,11 +6806,6 @@ def test_2852():
     p.check_returncode()
 
 
-@pytest.mark.xfail(
-    raises=subprocess.SubprocessError,
-    reason="https://gitlab.com/graphviz/graphviz/-/issues/2854",
-    strict=not is_ndebug_defined(),
-)
 def test_2854():
     """
     Graphviz should not crash when processing this graph
