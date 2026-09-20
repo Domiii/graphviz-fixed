@@ -39,7 +39,7 @@ PRIVATE double max_abs(int n, double *vector);
 
 PRIVATE void right_mult_with_vector_transpose(double **, int, int, double *,
                                               double *);
-PRIVATE void right_mult_with_vector_d(double *const *, int, int, double *,
+PRIVATE void right_mult_with_vector_d(double *const *, int, int, const double *,
                                       double *restrict);
 PRIVATE void mult_dense_mat_d(double **, float **, int, int, int, double ***CC);
 PRIVATE void mult_sparse_dense_mat_transpose(vtx_data *, double **, int, int,
