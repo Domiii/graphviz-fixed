@@ -232,9 +232,8 @@ void right_mult_with_vector(const vtx_data *matrix, int n, const double *vector,
                             double *restrict result) {
   int i;
 
-  double res;
   for (i = 0; i < n; i++) {
-    res = 0;
+    double res = 0;
     for (size_t j = 0; j < matrix[i].nedges; j++)
       res += matrix[i].ewgts[j] * vector[matrix[i].edges[j]];
     result[i] = res;
