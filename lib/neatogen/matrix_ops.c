@@ -228,7 +228,7 @@ void init_vec_orth1(int n, double *vec) {
   orthog1(n, vec);
 }
 
-void right_mult_with_vector(vtx_data *matrix, int n, double *vector,
+void right_mult_with_vector(const vtx_data *matrix, int n, double *vector,
                             double *restrict result) {
   int i;
 
