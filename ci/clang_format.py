@@ -328,7 +328,6 @@ EXCLUDE = (
     "lib/neatogen/lu.c",
     "lib/neatogen/matinv.c",
     "lib/neatogen/matrix_ops.c",
-    "lib/neatogen/matrix_ops.h",
     "lib/neatogen/multispline.c",
     "lib/neatogen/multispline.h",
     "lib/neatogen/neato.h",
