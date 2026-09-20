@@ -344,13 +344,12 @@ void right_mult_with_vector_ff(const float *packed_matrix, int n,
   /* packed matrix is the upper-triangular part of a symmetric matrix arranged
    * in a vector row-wise */
   int i, j, index;
-  float vector_i;
 
   for (i = 0; i < n; i++) {
     result[i] = 0;
   }
   for (index = 0, i = 0; i < n; i++) {
-    vector_i = vector[i];
+    const float vector_i = vector[i];
     /* deal with main diag */
     float res = packed_matrix[index++] * vector_i;
     /* deal with off diag */
