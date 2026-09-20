@@ -60,7 +60,7 @@ static size_t opn;
 
 static int triangulate(pointnlink_t **, size_t);
 static int loadtriangle(pointnlink_t *, pointnlink_t *, pointnlink_t *);
-static void connecttris(size_t, size_t);
+static void connecttris(triangles_t *tris, size_t, size_t);
 static bool marktripath(triangles_t *tris, size_t, size_t);
 
 static void add2dq(deque_t *dq, int, pointnlink_t*);
@@ -173,7 +173,7 @@ int Pshortestpath(Ppoly_t * polyp, Ppoint_t eps[2], Ppolyline_t * output)
     /* connect all pairs of triangles that share an edge */
     for (trii = 0; trii < LIST_SIZE(&tris); trii++)
 	for (trij = trii + 1; trij < LIST_SIZE(&tris); trij++)
-	    connecttris(trii, trij);
+	    connecttris(&tris, trii, trij);
 
     /* find first and last triangles */
     for (trii = 0; trii < LIST_SIZE(&tris); trii++)
@@ -358,14 +358,14 @@ static int loadtriangle(pointnlink_t * pnlap, pointnlink_t * pnlbp,
 }
 
 /* connect a pair of triangles at their common edge (if any) */
-static void connecttris(size_t tri1, size_t tri2) {
+static void connecttris(triangles_t *tris, size_t tri1, size_t tri2) {
     triangle_t *tri1p, *tri2p;
     int ei, ej;
 
     for (ei = 0; ei < 3; ei++) {
 	for (ej = 0; ej < 3; ej++) {
-	    tri1p = LIST_AT(&tris, tri1);
-	    tri2p = LIST_AT(&tris, tri2);
+	    tri1p = LIST_AT(tris, tri1);
+	    tri2p = LIST_AT(tris, tri2);
 	    if ((tri1p->e[ei].pnl0p->pp == tri2p->e[ej].pnl0p->pp &&
 		 tri1p->e[ei].pnl1p->pp == tri2p->e[ej].pnl1p->pp) ||
 		(tri1p->e[ei].pnl0p->pp == tri2p->e[ej].pnl1p->pp &&
