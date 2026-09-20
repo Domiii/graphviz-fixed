@@ -24,7 +24,7 @@ PRIVATE double norm(double *, int);
 
 PRIVATE void orthog1(int n, double *vec);
 PRIVATE void init_vec_orth1(int n, double *vec);
-PRIVATE void right_mult_with_vector(const vtx_data *, int, double *,
+PRIVATE void right_mult_with_vector(const vtx_data *, int, const double *,
                                     double *restrict);
 PRIVATE void vectors_subtraction(int, double *, double *, double *);
 PRIVATE void vectors_addition(int, double *, double *, double *);
