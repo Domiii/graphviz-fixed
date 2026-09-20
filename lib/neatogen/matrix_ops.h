@@ -52,7 +52,8 @@ PRIVATE bool power_iteration(double *const *, int, int, double **);
 *****************************/
 
 PRIVATE void orthog1f(int n, float *vec);
-PRIVATE void right_mult_with_vector_ff(float *, int, float *, float *restrict);
+PRIVATE void right_mult_with_vector_ff(const float *, int, float *,
+                                       float *restrict);
 PRIVATE void vectors_subtractionf(int, float *, float *, float *);
 PRIVATE void vectors_additionf(int n, float *vector1, float *vector2,
                                float *result);
