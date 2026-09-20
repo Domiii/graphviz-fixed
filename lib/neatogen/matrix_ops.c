@@ -340,7 +340,7 @@ void orthog1f(int n, float *vec) {
 }
 
 void right_mult_with_vector_ff(float *packed_matrix, int n, float *vector,
-                               float *result) {
+                               float *restrict result) {
   /* packed matrix is the upper-triangular part of a symmetric matrix arranged
    * in a vector row-wise */
   int i, j, index;
