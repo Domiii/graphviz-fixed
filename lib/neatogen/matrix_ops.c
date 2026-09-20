@@ -229,7 +229,7 @@ void init_vec_orth1(int n, double *vec) {
 }
 
 void right_mult_with_vector(vtx_data *matrix, int n, double *vector,
-                            double *result) {
+                            double *restrict result) {
   int i;
 
   double res;
