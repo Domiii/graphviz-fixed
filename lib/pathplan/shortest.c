@@ -53,7 +53,6 @@ typedef struct deque_t {
 } deque_t;
 
 typedef LIST(triangle_t) triangles_t;
-static triangles_t tris;
 
 static Ppoint_t *ops;
 static size_t opn;
@@ -104,7 +103,7 @@ int Pshortestpath(Ppoly_t * polyp, Ppoint_t eps[2], Ppolyline_t * output)
 	return -2;
     }
     size_t pnll = 0;
-    LIST_CLEAR(&tris);
+    triangles_t tris = {0};
 
     deque_t dq = {.pnlpn = polyp->pn * 2};
     dq.pnlps = calloc(dq.pnlpn, POINTNLINKPSIZE);
@@ -157,6 +156,7 @@ int Pshortestpath(Ppoly_t * polyp, Ppoint_t eps[2], Ppolyline_t * output)
 
     /* generate list of triangles */
     if (triangulate(&tris, pnlps, pnll)) {
+	LIST_FREE(&tris);
 	free(dq.pnlps);
 	free(pnlps);
 	free(pnls);
@@ -182,6 +182,7 @@ int Pshortestpath(Ppoly_t * polyp, Ppoint_t eps[2], Ppolyline_t * output)
 	    break;
     if (trii == LIST_SIZE(&tris)) {
 	prerror("source point not in any triangle");
+	LIST_FREE(&tris);
 	free(dq.pnlps);
 	free(pnlps);
 	free(pnls);
@@ -193,6 +194,7 @@ int Pshortestpath(Ppoly_t * polyp, Ppoint_t eps[2], Ppolyline_t * output)
 	    break;
     if (trii == LIST_SIZE(&tris)) {
 	prerror("destination point not in any triangle");
+	LIST_FREE(&tris);
 	free(dq.pnlps);
 	free(pnlps);
 	free(pnls);
@@ -203,6 +205,7 @@ int Pshortestpath(Ppoly_t * polyp, Ppoint_t eps[2], Ppolyline_t * output)
     /* mark the strip of triangles from eps[0] to eps[1] */
     if (!marktripath(&tris, ftrii, ltrii)) {
 	prerror("cannot find triangle path");
+	LIST_FREE(&tris);
 	free(dq.pnlps);
 	free(pnlps);
 	free(pnls);
@@ -217,6 +220,7 @@ int Pshortestpath(Ppoly_t * polyp, Ppoint_t eps[2], Ppolyline_t * output)
 
     /* if endpoints in same triangle, use a single line */
     if (ftrii == ltrii) {
+	LIST_FREE(&tris);
 	free(dq.pnlps);
 	free(pnlps);
 	free(pnls);
@@ -296,6 +300,7 @@ int Pshortestpath(Ppoly_t * polyp, Ppoint_t eps[2], Ppolyline_t * output)
     fprintf(stderr, "\n");
 #endif
 
+    LIST_FREE(&tris);
     free(dq.pnlps);
     size_t i;
     for (i = 0, pnlp = &epnls[1]; pnlp; pnlp = pnlp->link)
