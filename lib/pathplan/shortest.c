@@ -58,7 +58,7 @@ static triangles_t tris;
 static Ppoint_t *ops;
 static size_t opn;
 
-static int triangulate(pointnlink_t **, size_t);
+static int triangulate(triangles_t *tris, pointnlink_t **, size_t);
 static int loadtriangle(triangles_t *tris, pointnlink_t *, pointnlink_t *,
                         pointnlink_t *);
 static void connecttris(triangles_t *tris, size_t, size_t);
@@ -156,7 +156,7 @@ int Pshortestpath(Ppoly_t * polyp, Ppoint_t eps[2], Ppolyline_t * output)
 #endif
 
     /* generate list of triangles */
-    if (triangulate(pnlps, pnll)) {
+    if (triangulate(&tris, pnlps, pnll)) {
 	free(dq.pnlps);
 	free(pnlps);
 	free(pnls);
@@ -316,7 +316,8 @@ int Pshortestpath(Ppoly_t * polyp, Ppoint_t eps[2], Ppolyline_t * output)
 }
 
 /* triangulate polygon */
-static int triangulate(pointnlink_t **points, size_t point_count) {
+static int triangulate(triangles_t *tris, pointnlink_t **points,
+                       size_t point_count) {
 	if (point_count > 3)
 	{
 		for (size_t pnli = 0; pnli < point_count; pnli++)
@@ -325,17 +326,17 @@ static int triangulate(pointnlink_t **points, size_t point_count) {
 			const size_t pnlip2 = (pnli + 2) % point_count;
 			if (isdiagonal(pnli, pnlip2, points, point_count, point_indexer))
 			{
-				if (loadtriangle(&tris, points[pnli], points[pnlip1], points[pnlip2]) != 0)
+				if (loadtriangle(tris, points[pnli], points[pnlip1], points[pnlip2]) != 0)
 					return -1;
 				for (pnli = pnlip1; pnli < point_count - 1; pnli++)
 					points[pnli] = points[pnli + 1];
-				return triangulate(points, point_count - 1);
+				return triangulate(tris, points, point_count - 1);
 			}
 		}
 		prerror("triangulation failed");
     } 
 	else {
-		if (loadtriangle(&tris, points[0], points[1], points[2]) != 0)
+		if (loadtriangle(tris, points[0], points[1], points[2]) != 0)
 			return -1;
 	}
 
