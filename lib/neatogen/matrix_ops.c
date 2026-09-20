@@ -308,9 +308,8 @@ void right_mult_with_vector_d(double *const *matrix, int dim1, int dim2,
   // result = matrix × vector
   int i, j;
 
-  double res;
   for (i = 0; i < dim1; i++) {
-    res = 0;
+    double res = 0;
     for (j = 0; j < dim2; j++)
       res += matrix[i][j] * vector[j];
     result[i] = res;
