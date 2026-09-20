@@ -61,7 +61,7 @@ static size_t opn;
 static int triangulate(pointnlink_t **, size_t);
 static int loadtriangle(pointnlink_t *, pointnlink_t *, pointnlink_t *);
 static void connecttris(size_t, size_t);
-static bool marktripath(size_t, size_t);
+static bool marktripath(triangles_t *tris, size_t, size_t);
 
 static void add2dq(deque_t *dq, int, pointnlink_t*);
 static void splitdq(deque_t *dq, int, size_t);
@@ -200,7 +200,7 @@ int Pshortestpath(Ppoly_t * polyp, Ppoint_t eps[2], Ppolyline_t * output)
     ltrii = trii;
 
     /* mark the strip of triangles from eps[0] to eps[1] */
-    if (!marktripath(ftrii, ltrii)) {
+    if (!marktripath(&tris, ftrii, ltrii)) {
 	prerror("cannot find triangle path");
 	free(dq.pnlps);
 	free(pnlps);
@@ -376,19 +376,20 @@ static void connecttris(size_t tri1, size_t tri2) {
 }
 
 /* find and mark path from trii, to trij */
-static bool marktripath(size_t trii, size_t trij) {
+static bool marktripath(triangles_t *tris, size_t trii, size_t trij) {
+    assert(tris != NULL);
     int ei;
 
-    if (LIST_GET(&tris, trii).mark)
+    if (LIST_GET(tris, trii).mark)
 	return false;
-    LIST_AT(&tris, trii)->mark = 1;
+    LIST_AT(tris, trii)->mark = 1;
     if (trii == trij)
 	return true;
     for (ei = 0; ei < 3; ei++)
-	if (LIST_GET(&tris, trii).e[ei].right_index != SIZE_MAX &&
-	    marktripath(LIST_GET(&tris, trii).e[ei].right_index, trij))
+	if (LIST_GET(tris, trii).e[ei].right_index != SIZE_MAX &&
+	    marktripath(tris, LIST_GET(tris, trii).e[ei].right_index, trij))
 	    return true;
-    LIST_AT(&tris, trii)->mark = 0;
+    LIST_AT(tris, trii)->mark = 0;
     return false;
 }
 
