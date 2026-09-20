@@ -52,7 +52,8 @@ typedef struct deque_t {
     size_t pnlpn, fpnlpi, lpnlpi, apex;
 } deque_t;
 
-static LIST(triangle_t) tris;
+typedef LIST(triangle_t) triangles_t;
+static triangles_t tris;
 
 static Ppoint_t *ops;
 static size_t opn;
@@ -66,7 +67,7 @@ static void add2dq(deque_t *dq, int, pointnlink_t*);
 static void splitdq(deque_t *dq, int, size_t);
 static size_t finddqsplit(const deque_t *dq, pointnlink_t*);
 
-static int pointintri(size_t, Ppoint_t *);
+static int pointintri(const triangles_t tris, size_t, Ppoint_t *);
 
 static int growops(size_t);
 
@@ -176,7 +177,7 @@ int Pshortestpath(Ppoly_t * polyp, Ppoint_t eps[2], Ppolyline_t * output)
 
     /* find first and last triangles */
     for (trii = 0; trii < LIST_SIZE(&tris); trii++)
-	if (pointintri(trii, &eps[0]))
+	if (pointintri(tris, trii, &eps[0]))
 	    break;
     if (trii == LIST_SIZE(&tris)) {
 	prerror("source point not in any triangle");
@@ -187,7 +188,7 @@ int Pshortestpath(Ppoly_t * polyp, Ppoint_t eps[2], Ppolyline_t * output)
     }
     ftrii = trii;
     for (trii = 0; trii < LIST_SIZE(&tris); trii++)
-	if (pointintri(trii, &eps[1]))
+	if (pointintri(tris, trii, &eps[1]))
 	    break;
     if (trii == LIST_SIZE(&tris)) {
 	prerror("destination point not in any triangle");
@@ -423,7 +424,7 @@ static size_t finddqsplit(const deque_t *dq, pointnlink_t *pnlp) {
     return dq->apex;
 }
 
-static int pointintri(size_t trii, Ppoint_t *pp) {
+static int pointintri(const triangles_t tris, size_t trii, Ppoint_t *pp) {
     int ei, sum;
 
     for (ei = 0, sum = 0; ei < 3; ei++)
