@@ -230,9 +230,7 @@ void init_vec_orth1(int n, double *vec) {
 
 void right_mult_with_vector(const vtx_data *matrix, int n, const double *vector,
                             double *restrict result) {
-  int i;
-
-  for (i = 0; i < n; i++) {
+  for (int i = 0; i < n; i++) {
     double res = 0;
     for (size_t j = 0; j < matrix[i].nedges; j++)
       res += matrix[i].ewgts[j] * vector[matrix[i].edges[j]];
