@@ -306,9 +306,9 @@ void right_mult_with_vector_d(double *const *matrix, int dim1, int dim2,
                               const double *vector, double *restrict result) {
   // matrix is dim1 × dim2, vector has dim2 components,
   // result = matrix × vector
-  int i, j;
+  int j;
 
-  for (i = 0; i < dim1; i++) {
+  for (int i = 0; i < dim1; i++) {
     double res = 0;
     for (j = 0; j < dim2; j++)
       res += matrix[i][j] * vector[j];
