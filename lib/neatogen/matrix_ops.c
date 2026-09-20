@@ -343,8 +343,6 @@ void right_mult_with_vector_ff(const float *packed_matrix, int n,
                                const float *vector, float *restrict result) {
   /* packed matrix is the upper-triangular part of a symmetric matrix arranged
    * in a vector row-wise */
-  int j;
-
   for (int i = 0; i < n; i++) {
     result[i] = 0;
   }
@@ -353,7 +351,7 @@ void right_mult_with_vector_ff(const float *packed_matrix, int n,
     /* deal with main diag */
     float res = packed_matrix[index++] * vector_i;
     /* deal with off diag */
-    for (j = i + 1; j < n; j++, index++) {
+    for (int j = i + 1; j < n; j++, index++) {
       res += packed_matrix[index] * vector[j];
       result[j] += packed_matrix[index] * vector_i;
     }
