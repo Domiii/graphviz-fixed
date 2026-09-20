@@ -59,7 +59,8 @@ static Ppoint_t *ops;
 static size_t opn;
 
 static int triangulate(pointnlink_t **, size_t);
-static int loadtriangle(pointnlink_t *, pointnlink_t *, pointnlink_t *);
+static int loadtriangle(triangles_t *tris, pointnlink_t *, pointnlink_t *,
+                        pointnlink_t *);
 static void connecttris(triangles_t *tris, size_t, size_t);
 static bool marktripath(triangles_t *tris, size_t, size_t);
 
@@ -324,7 +325,7 @@ static int triangulate(pointnlink_t **points, size_t point_count) {
 			const size_t pnlip2 = (pnli + 2) % point_count;
 			if (isdiagonal(pnli, pnlip2, points, point_count, point_indexer))
 			{
-				if (loadtriangle(points[pnli], points[pnlip1], points[pnlip2]) != 0)
+				if (loadtriangle(&tris, points[pnli], points[pnlip1], points[pnlip2]) != 0)
 					return -1;
 				for (pnli = pnlip1; pnli < point_count - 1; pnli++)
 					points[pnli] = points[pnli + 1];
@@ -334,22 +335,21 @@ static int triangulate(pointnlink_t **points, size_t point_count) {
 		prerror("triangulation failed");
     } 
 	else {
-		if (loadtriangle(points[0], points[1], points[2]) != 0)
+		if (loadtriangle(&tris, points[0], points[1], points[2]) != 0)
 			return -1;
 	}
 
     return 0;
 }
 
-static int loadtriangle(pointnlink_t * pnlap, pointnlink_t * pnlbp,
-			 pointnlink_t * pnlcp)
-{
+static int loadtriangle(triangles_t *tris, pointnlink_t *pnlap,
+                        pointnlink_t *pnlbp, pointnlink_t *pnlcp) {
     triangle_t trip = {0};
     trip.e[0].pnl0p = pnlap, trip.e[0].pnl1p = pnlbp, trip.e[0].right_index = SIZE_MAX;
     trip.e[1].pnl0p = pnlbp, trip.e[1].pnl1p = pnlcp, trip.e[1].right_index = SIZE_MAX;
     trip.e[2].pnl0p = pnlcp, trip.e[2].pnl1p = pnlap, trip.e[2].right_index = SIZE_MAX;
 
-    if (!LIST_TRY_APPEND(&tris, trip)) {
+    if (!LIST_TRY_APPEND(tris, trip)) {
 	prerror("cannot realloc tris");
 	return -1;
     }
