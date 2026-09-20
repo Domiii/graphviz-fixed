@@ -346,15 +346,13 @@ void right_mult_with_vector_ff(const float *packed_matrix, int n,
   int i, j, index;
   float vector_i;
 
-  float res;
   for (i = 0; i < n; i++) {
     result[i] = 0;
   }
   for (index = 0, i = 0; i < n; i++) {
-    res = 0;
     vector_i = vector[i];
     /* deal with main diag */
-    res += packed_matrix[index++] * vector_i;
+    float res = packed_matrix[index++] * vector_i;
     /* deal with off diag */
     for (j = i + 1; j < n; j++, index++) {
       res += packed_matrix[index] * vector[j];
