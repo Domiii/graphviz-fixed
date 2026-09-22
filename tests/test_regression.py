@@ -6976,6 +6976,44 @@ def test_2858_1(with_graph: bool):
             raise
 
 
+@pytest.mark.parametrize("variant", ("2860.dot", "2860_1.dot"))
+def test_2860(variant: str):
+    """
+    edges from subgraphs should not be duplicated by `nop`
+
+    A regression that occurred in 230a65310a8546e2fc62857e6f90c01988f374f3
+    resulted in duplicated edges in output. This tests that the problem has not
+    been reintroduced.
+
+    https://gitlab.com/graphviz/graphviz/-/commit/230a65310a8546e2fc62857e6f90c01988f374f3#note_3843334991
+    https://gitlab.com/graphviz/graphviz/-/issues/2854#note_3844254814
+    https://gitlab.com/graphviz/graphviz/-/issues/2860
+
+    Args:
+        variant: Which test input to use.
+    """
+
+    # locate our associated test case in this directory
+    src = Path(__file__).parent / variant
+    assert src.exists(), "unexpectedly missing test case"
+
+    # run this through `nop`
+    out = run("nop", src)
+
+    # extract edges from the input
+    reference: list[str] = []
+    regex = r"\b(?P<from>\d\w*)\s*--\s*(?P<to>\d\w*)\b"
+    for f, t in re.findall(regex, src.read_text(encoding="utf-8")):
+        reference += [f"{f}--{t}"]
+
+    # extract edges from the output
+    seen: list[str] = []
+    for f, t in re.findall(regex, out):
+        seen += [f"{f}--{t}"]
+
+    assert sorted(reference) == sorted(seen), "`nop` does not retain same edges"
+
+
 def test_698066():
     """
     Graphviz should not crash when processing this graph
