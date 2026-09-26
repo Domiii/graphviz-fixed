@@ -1,0 +1,21 @@
+digraph NotNotesFarOuter {
+  /* Notes left + NORMAL right of spine. Must leave Notes far outer; far Bound not asserted. */
+  rankdir=TB;
+  nodesep=0.35;
+  ranksep=0.5;
+  splines=polyline;
+  node [shape=box];
+
+  Top [group=spine];
+  Mid [group=spine];
+  Bot [group=spine];
+  LeftNote [shape=note];
+  RightBlock [label="RightBlockXXXX" width=2.2];
+
+  Top -> Mid -> Bot;
+  Bot -> Top [constraint=false label="back"];
+
+  LeftNote -> Mid [style=dotted arrowhead=none];
+  Mid -> RightBlock [style=invis weight=10];
+  { rank=same; LeftNote; Mid; RightBlock; }
+}

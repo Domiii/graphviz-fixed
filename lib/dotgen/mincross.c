@@ -1324,6 +1324,179 @@ static void postorder(graph_t *g, node_t *v, nodes_t *list, int r) {
   LIST_APPEND(list, v);
 }
 
+static bool is_free_long_edge_virt(graph_t *g, node_t *v) {
+  if (ND_node_type(v) != VIRTUAL || ND_in(v).size != 1 || ND_out(v).size != 1 ||
+      ED_xpenalty(ND_out(v).list[0]) > 0)
+    return false;
+  for (size_t j = 0; j < ND_flat_in(v).size; j++)
+    if (constraining_flat_edge(g, ND_flat_in(v).list[j]))
+      return false;
+  for (size_t j = 0; j < ND_flat_out(v).size; j++)
+    if (constraining_flat_edge(g, ND_flat_out(v).list[j]))
+      return false;
+  return true;
+}
+
+static node_t *spine_of_rank(graph_t *g, int r) {
+  for (int i = 0; i < GD_rank(g)[r].n; i++) {
+    node_t *v = GD_rank(g)[r].v[i];
+    if (ND_node_type(v) == NORMAL && (ND_in(v).size || ND_out(v).size))
+      return v;
+  }
+  return NULL;
+}
+
+/* Adjacent order-only swaps so each constraining flat is LR (tail left of head
+ * when !GD_flip). Used when valid_rank aborts the full temprank rewrite.
+ * Only on ranks with few constraining flats (Note↔Mid style). Dense flat ranks
+ * (e.g. #2368) must stay untouched — reordering them breaks routesplines. */
+static int count_constraining_flats(graph_t *g, int r) {
+  int n = 0;
+  for (int i = 0; i < GD_rank(g)[r].n; i++) {
+    node_t *v = GD_rank(g)[r].v[i];
+    for (size_t j = 0; j < ND_flat_out(v).size; j++) {
+      edge_t *e = ND_flat_out(v).list[j];
+      if (constraining_flat_edge(g, e) && ND_rank(aghead(e)) == r)
+        n++;
+    }
+  }
+  return n;
+}
+
+static void restore_constraining_flat_lr(graph_t *g, int r) {
+  bool progress;
+
+  if (count_constraining_flats(g, r) > 2)
+    return;
+
+  do {
+    progress = false;
+    for (int i = 0; i < GD_rank(g)[r].n; i++) {
+      node_t *v = GD_rank(g)[r].v[i];
+      for (size_t j = 0; j < ND_flat_out(v).size; j++) {
+        edge_t *e = ND_flat_out(v).list[j];
+        node_t *t, *h, *nb;
+        int o;
+
+        if (!constraining_flat_edge(g, e))
+          continue;
+        t = agtail(e);
+        h = aghead(e);
+        if (ND_rank(t) != r || ND_rank(h) != r)
+          continue;
+        if (!GD_flip(g)) {
+          if (ND_order(t) < ND_order(h))
+            continue;
+          o = ND_order(t);
+          if (o <= 0)
+            continue;
+          nb = GD_rank(Root)[r].v[o - 1];
+          if (left2right(g, nb, t)) {
+            o = ND_order(h);
+            if (o + 1 >= GD_rank(g)[r].n)
+              continue;
+            nb = GD_rank(Root)[r].v[o + 1];
+            if (left2right(g, h, nb))
+              continue;
+            exchange(h, nb);
+          } else
+            exchange(nb, t);
+          progress = true;
+        } else {
+          if (ND_order(h) < ND_order(t))
+            continue;
+          o = ND_order(t);
+          if (o + 1 >= GD_rank(g)[r].n)
+            continue;
+          nb = GD_rank(Root)[r].v[o + 1];
+          if (left2right(g, t, nb)) {
+            o = ND_order(h);
+            if (o <= 0)
+              continue;
+            nb = GD_rank(Root)[r].v[o - 1];
+            if (left2right(g, nb, h))
+              continue;
+            exchange(nb, h);
+          } else
+            exchange(t, nb);
+          progress = true;
+        }
+      }
+    }
+  } while (progress);
+}
+
+/* Flat NORMAL component on this rank: orders of NORMALs with constraining flats. */
+static void flat_component_bounds(graph_t *g, int r, int *flo, int *fhi) {
+  *flo = INT_MAX;
+  *fhi = INT_MIN;
+  for (int i = 0; i < GD_rank(g)[r].n; i++) {
+    node_t *v = GD_rank(g)[r].v[i];
+    bool has = false;
+    if (ND_node_type(v) != NORMAL)
+      continue;
+    for (size_t j = 0; j < ND_flat_in(v).size && !has; j++)
+      if (constraining_flat_edge(g, ND_flat_in(v).list[j]))
+        has = true;
+    for (size_t j = 0; j < ND_flat_out(v).size && !has; j++)
+      if (constraining_flat_edge(g, ND_flat_out(v).list[j]))
+        has = true;
+    if (!has)
+      continue;
+    if (ND_order(v) < *flo)
+      *flo = ND_order(v);
+    if (ND_order(v) > *fhi)
+      *fhi = ND_order(v);
+  }
+}
+
+static void place_free_long_virts(graph_t *g, int r) {
+  node_t *spine = spine_of_rank(g, r);
+  nodes_t virts = {0};
+  int flo, fhi, so, side;
+
+  if (!spine)
+    return;
+  flat_component_bounds(g, r, &flo, &fhi);
+  for (int i = 0; i < GD_rank(g)[r].n; i++) {
+    node_t *v = GD_rank(g)[r].v[i];
+    if (is_free_long_edge_virt(g, v))
+      LIST_APPEND(&virts, v);
+  }
+  so = ND_order(spine);
+  for (size_t hi = 0; hi < LIST_SIZE(&virts); hi++) {
+    node_t *virt = LIST_GET(&virts, hi);
+    side = 0;
+    for (int pass = 0; pass < 2 && !side; pass++) {
+      node_t *nbr =
+          pass ? aghead(ND_out(virt).list[0]) : agtail(ND_in(virt).list[0]);
+      node_t *sp = spine_of_rank(g, ND_rank(nbr));
+      if (sp && nbr != sp) {
+        if (ND_order(nbr) < ND_order(sp))
+          side = -1;
+        else if (ND_order(nbr) > ND_order(sp))
+          side = 1;
+      }
+    }
+    if (!side && flo <= fhi) {
+      if (flo < so && fhi <= so)
+        side = 1;
+      else if (fhi > so && flo >= so)
+        side = -1;
+      else if (flo < so && fhi > so)
+        side = 1;
+    }
+    while (side && (side < 0 ? ND_order(virt) > so : ND_order(virt) < so)) {
+      int o = ND_order(virt);
+      node_t *nb = GD_rank(Root)[r].v[side < 0 ? o - 1 : o + 1];
+      if (side < 0 ? left2right(g, nb, virt) : left2right(g, virt, nb))
+        break;
+      exchange(side < 0 ? nb : virt, side < 0 ? virt : nb);
+    }
+  }
+  LIST_FREE(&virts);
+}
+
 static void flat_reorder(graph_t *g) {
   int i, r, local_in_cnt, local_out_cnt, base_order;
   node_t *v;
@@ -1394,8 +1567,12 @@ static void flat_reorder(graph_t *g) {
         }
       }
       /* postprocess to restore intended order */
+    } else {
+      /* valid_rank aborted: do not apply partial temprank (#2368).
+       * Still restore constraining flat NORMAL LR via adjacent exchanges. */
+      restore_constraining_flat_lr(g, r);
     }
-    /* else do no harm! */
+    place_free_long_virts(g, r);
     GD_rank(Root)[r].valid = false;
   }
   LIST_FREE(&temprank);

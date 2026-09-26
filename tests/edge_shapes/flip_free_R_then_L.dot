@@ -1,0 +1,26 @@
+digraph FlipFreeRThenL {
+  /* Notes L@MidA, R@MidB → free Mid corridor R then L. Endpoints may follow
+     that corridor; not compass ports / Bot-out Top-in. */
+  rankdir=TB;
+  nodesep=0.4;
+  ranksep=0.45;
+  splines=polyline;
+  node [shape=box];
+
+  Top [group=spine];
+  MidA [group=spine];
+  Gap [group=spine];
+  MidB [group=spine];
+  Bot [group=spine];
+  NoteL [shape=note];
+  NoteR [shape=note];
+
+  Top -> MidA -> Gap -> MidB -> Bot;
+  Bot -> Top [constraint=false label="back"];
+
+  NoteL -> MidA [style=dotted arrowhead=none];
+  MidB -> NoteR [style=dotted arrowhead=none];
+
+  { rank=same; NoteL; MidA; }
+  { rank=same; MidB; NoteR; }
+}

@@ -1,0 +1,19 @@
+digraph RightStaysRight {
+  /* Notes left of spine. Free corridor is right of Mid, not Notes far outer. */
+  rankdir=TB;
+  nodesep=0.4;
+  ranksep=0.5;
+  splines=polyline;
+  node [shape=box];
+
+  Top [group=spine];
+  Mid [group=spine];
+  Gap [group=spine];
+  Bot [group=spine];
+  Note [shape=note];
+
+  Top -> Mid -> Gap -> Bot;
+  Bot -> Top [constraint=false label="back"];
+  Note -> Mid [style=dotted arrowhead=none];
+  { rank=same; Note; Mid; }
+}
