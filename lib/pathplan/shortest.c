@@ -52,21 +52,22 @@ typedef struct deque_t {
     size_t pnlpn, fpnlpi, lpnlpi, apex;
 } deque_t;
 
-static LIST(triangle_t) tris;
+typedef LIST(triangle_t) triangles_t;
 
 static Ppoint_t *ops;
 static size_t opn;
 
-static int triangulate(pointnlink_t **, size_t);
-static int loadtriangle(pointnlink_t *, pointnlink_t *, pointnlink_t *);
-static void connecttris(size_t, size_t);
-static bool marktripath(size_t, size_t);
+static int triangulate(triangles_t *tris, pointnlink_t **, size_t);
+static int loadtriangle(triangles_t *tris, pointnlink_t *, pointnlink_t *,
+                        pointnlink_t *);
+static void connecttris(triangles_t *tris, size_t, size_t);
+static bool marktripath(triangles_t *tris, size_t, size_t);
 
 static void add2dq(deque_t *dq, int, pointnlink_t*);
 static void splitdq(deque_t *dq, int, size_t);
 static size_t finddqsplit(const deque_t *dq, pointnlink_t*);
 
-static int pointintri(size_t, Ppoint_t *);
+static int pointintri(const triangles_t tris, size_t, Ppoint_t *);
 
 static int growops(size_t);
 
@@ -102,7 +103,7 @@ int Pshortestpath(Ppoly_t * polyp, Ppoint_t eps[2], Ppolyline_t * output)
 	return -2;
     }
     size_t pnll = 0;
-    LIST_CLEAR(&tris);
+    triangles_t tris = {0};
 
     deque_t dq = {.pnlpn = polyp->pn * 2};
     dq.pnlps = calloc(dq.pnlpn, POINTNLINKPSIZE);
@@ -154,7 +155,8 @@ int Pshortestpath(Ppoly_t * polyp, Ppoint_t eps[2], Ppolyline_t * output)
 #endif
 
     /* generate list of triangles */
-    if (triangulate(pnlps, pnll)) {
+    if (triangulate(&tris, pnlps, pnll)) {
+	LIST_FREE(&tris);
 	free(dq.pnlps);
 	free(pnlps);
 	free(pnls);
@@ -172,14 +174,15 @@ int Pshortestpath(Ppoly_t * polyp, Ppoint_t eps[2], Ppolyline_t * output)
     /* connect all pairs of triangles that share an edge */
     for (trii = 0; trii < LIST_SIZE(&tris); trii++)
 	for (trij = trii + 1; trij < LIST_SIZE(&tris); trij++)
-	    connecttris(trii, trij);
+	    connecttris(&tris, trii, trij);
 
     /* find first and last triangles */
     for (trii = 0; trii < LIST_SIZE(&tris); trii++)
-	if (pointintri(trii, &eps[0]))
+	if (pointintri(tris, trii, &eps[0]))
 	    break;
     if (trii == LIST_SIZE(&tris)) {
 	prerror("source point not in any triangle");
+	LIST_FREE(&tris);
 	free(dq.pnlps);
 	free(pnlps);
 	free(pnls);
@@ -187,10 +190,11 @@ int Pshortestpath(Ppoly_t * polyp, Ppoint_t eps[2], Ppolyline_t * output)
     }
     ftrii = trii;
     for (trii = 0; trii < LIST_SIZE(&tris); trii++)
-	if (pointintri(trii, &eps[1]))
+	if (pointintri(tris, trii, &eps[1]))
 	    break;
     if (trii == LIST_SIZE(&tris)) {
 	prerror("destination point not in any triangle");
+	LIST_FREE(&tris);
 	free(dq.pnlps);
 	free(pnlps);
 	free(pnls);
@@ -199,8 +203,9 @@ int Pshortestpath(Ppoly_t * polyp, Ppoint_t eps[2], Ppolyline_t * output)
     ltrii = trii;
 
     /* mark the strip of triangles from eps[0] to eps[1] */
-    if (!marktripath(ftrii, ltrii)) {
+    if (!marktripath(&tris, ftrii, ltrii)) {
 	prerror("cannot find triangle path");
+	LIST_FREE(&tris);
 	free(dq.pnlps);
 	free(pnlps);
 	free(pnls);
@@ -215,6 +220,7 @@ int Pshortestpath(Ppoly_t * polyp, Ppoint_t eps[2], Ppolyline_t * output)
 
     /* if endpoints in same triangle, use a single line */
     if (ftrii == ltrii) {
+	LIST_FREE(&tris);
 	free(dq.pnlps);
 	free(pnlps);
 	free(pnls);
@@ -294,6 +300,7 @@ int Pshortestpath(Ppoly_t * polyp, Ppoint_t eps[2], Ppolyline_t * output)
     fprintf(stderr, "\n");
 #endif
 
+    LIST_FREE(&tris);
     free(dq.pnlps);
     size_t i;
     for (i = 0, pnlp = &epnls[1]; pnlp; pnlp = pnlp->link)
@@ -314,7 +321,8 @@ int Pshortestpath(Ppoly_t * polyp, Ppoint_t eps[2], Ppolyline_t * output)
 }
 
 /* triangulate polygon */
-static int triangulate(pointnlink_t **points, size_t point_count) {
+static int triangulate(triangles_t *tris, pointnlink_t **points,
+                       size_t point_count) {
 	if (point_count > 3)
 	{
 		for (size_t pnli = 0; pnli < point_count; pnli++)
@@ -323,32 +331,31 @@ static int triangulate(pointnlink_t **points, size_t point_count) {
 			const size_t pnlip2 = (pnli + 2) % point_count;
 			if (isdiagonal(pnli, pnlip2, points, point_count, point_indexer))
 			{
-				if (loadtriangle(points[pnli], points[pnlip1], points[pnlip2]) != 0)
+				if (loadtriangle(tris, points[pnli], points[pnlip1], points[pnlip2]) != 0)
 					return -1;
 				for (pnli = pnlip1; pnli < point_count - 1; pnli++)
 					points[pnli] = points[pnli + 1];
-				return triangulate(points, point_count - 1);
+				return triangulate(tris, points, point_count - 1);
 			}
 		}
 		prerror("triangulation failed");
     } 
 	else {
-		if (loadtriangle(points[0], points[1], points[2]) != 0)
+		if (loadtriangle(tris, points[0], points[1], points[2]) != 0)
 			return -1;
 	}
 
     return 0;
 }
 
-static int loadtriangle(pointnlink_t * pnlap, pointnlink_t * pnlbp,
-			 pointnlink_t * pnlcp)
-{
+static int loadtriangle(triangles_t *tris, pointnlink_t *pnlap,
+                        pointnlink_t *pnlbp, pointnlink_t *pnlcp) {
     triangle_t trip = {0};
     trip.e[0].pnl0p = pnlap, trip.e[0].pnl1p = pnlbp, trip.e[0].right_index = SIZE_MAX;
     trip.e[1].pnl0p = pnlbp, trip.e[1].pnl1p = pnlcp, trip.e[1].right_index = SIZE_MAX;
     trip.e[2].pnl0p = pnlcp, trip.e[2].pnl1p = pnlap, trip.e[2].right_index = SIZE_MAX;
 
-    if (!LIST_TRY_APPEND(&tris, trip)) {
+    if (!LIST_TRY_APPEND(tris, trip)) {
 	prerror("cannot realloc tris");
 	return -1;
     }
@@ -357,14 +364,14 @@ static int loadtriangle(pointnlink_t * pnlap, pointnlink_t * pnlbp,
 }
 
 /* connect a pair of triangles at their common edge (if any) */
-static void connecttris(size_t tri1, size_t tri2) {
+static void connecttris(triangles_t *tris, size_t tri1, size_t tri2) {
     triangle_t *tri1p, *tri2p;
     int ei, ej;
 
     for (ei = 0; ei < 3; ei++) {
 	for (ej = 0; ej < 3; ej++) {
-	    tri1p = LIST_AT(&tris, tri1);
-	    tri2p = LIST_AT(&tris, tri2);
+	    tri1p = LIST_AT(tris, tri1);
+	    tri2p = LIST_AT(tris, tri2);
 	    if ((tri1p->e[ei].pnl0p->pp == tri2p->e[ej].pnl0p->pp &&
 		 tri1p->e[ei].pnl1p->pp == tri2p->e[ej].pnl1p->pp) ||
 		(tri1p->e[ei].pnl0p->pp == tri2p->e[ej].pnl1p->pp &&
@@ -375,19 +382,20 @@ static void connecttris(size_t tri1, size_t tri2) {
 }
 
 /* find and mark path from trii, to trij */
-static bool marktripath(size_t trii, size_t trij) {
+static bool marktripath(triangles_t *tris, size_t trii, size_t trij) {
+    assert(tris != NULL);
     int ei;
 
-    if (LIST_GET(&tris, trii).mark)
+    if (LIST_GET(tris, trii).mark)
 	return false;
-    LIST_AT(&tris, trii)->mark = 1;
+    LIST_AT(tris, trii)->mark = 1;
     if (trii == trij)
 	return true;
     for (ei = 0; ei < 3; ei++)
-	if (LIST_GET(&tris, trii).e[ei].right_index != SIZE_MAX &&
-	    marktripath(LIST_GET(&tris, trii).e[ei].right_index, trij))
+	if (LIST_GET(tris, trii).e[ei].right_index != SIZE_MAX &&
+	    marktripath(tris, LIST_GET(tris, trii).e[ei].right_index, trij))
 	    return true;
-    LIST_AT(&tris, trii)->mark = 0;
+    LIST_AT(tris, trii)->mark = 0;
     return false;
 }
 
@@ -423,7 +431,7 @@ static size_t finddqsplit(const deque_t *dq, pointnlink_t *pnlp) {
     return dq->apex;
 }
 
-static int pointintri(size_t trii, Ppoint_t *pp) {
+static int pointintri(const triangles_t tris, size_t trii, Ppoint_t *pp) {
     int ei, sum;
 
     for (ei = 0, sum = 0; ei < 3; ei++)
