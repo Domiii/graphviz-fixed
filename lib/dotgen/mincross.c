@@ -120,6 +120,7 @@ static int nodeposcmpf(const void *, const void *);
 static int edgeidcmpf(const void *, const void *);
 static void flat_breakcycles(graph_t *g);
 static void flat_reorder(graph_t *g);
+static void place_free_long_virts(graph_t *g, int r);
 static void flat_search(graph_t *g, node_t *v);
 static void init_mincross(graph_t *g);
 static void merge2(graph_t *g);
@@ -398,6 +399,9 @@ int dot_mincross(graph_t *g) {
 #endif
   }
 done:
+  if (rc == 0)
+    for (int r = GD_minrank(g); r <= GD_maxrank(g); r++)
+      place_free_long_virts(g, r);
   cleanup2(g, nc, has_set_vlists);
   return rc;
 }
@@ -1324,9 +1328,16 @@ static void postorder(graph_t *g, node_t *v, nodes_t *list, int r) {
   LIST_APPEND(list, v);
 }
 
+static edge_t *orig_edge_of_virt(node_t *v) {
+  edge_t *e = ND_out(v).list[0];
+  while (ED_to_orig(e))
+    e = ED_to_orig(e);
+  return e;
+}
+
 static bool is_free_long_edge_virt(graph_t *g, node_t *v) {
   if (ND_node_type(v) != VIRTUAL || ND_in(v).size != 1 || ND_out(v).size != 1 ||
-      ED_xpenalty(ND_out(v).list[0]) > 0)
+      !nonconstraint_edge(orig_edge_of_virt(v)))
     return false;
   for (size_t j = 0; j < ND_flat_in(v).size; j++)
     if (constraining_flat_edge(g, ND_flat_in(v).list[j]))

@@ -1,0 +1,24 @@
+digraph BothSides {
+  /* Case 1: notes LEFT + wide NORMAL already RIGHT of spine.
+     Bound-side "outside all NORMALs on free side" = right of RightBlock.
+     Near gutter Mid|RightBlock is shorter; far Bound is a detour. */
+  rankdir=TB;
+  nodesep=0.35;
+  ranksep=0.5;
+  splines=polyline;
+  node [shape=box];
+
+  Top [group=spine];
+  Mid [group=spine];
+  Bot [group=spine];
+  LeftNote [shape=note];
+  RightBlock [label="RightBlockXXXX" width=2.2];
+
+  Top -> Mid -> Bot;
+  Bot -> Top [constraint=false label="back"];
+
+  LeftNote -> Mid [style=dotted arrowhead=none];
+  { rank=same; LeftNote; Mid; RightBlock; }
+  /* force RightBlock right of Mid via ordering edge */
+  Mid -> RightBlock [style=invis weight=10];
+}

@@ -40,9 +40,10 @@ you are making, you will want to follow different steps.
 ./autogen.sh
 
 # you probably do not want to install your development version of Graphviz over
-# the top of your system binaries/libraries, so create a temporary directory as
-# an install destination
-PREFIX=$(mktemp -d)
+# the top of your system binaries/libraries, so install under a stable
+# repo-local prefix (survives /tmp wipes)
+mkdir -p dist
+PREFIX=${PWD}/dist
 
 # configure the build system
 ./configure --prefix=${PREFIX}
@@ -53,7 +54,7 @@ PREFIX=$(mktemp -d)
 # compile Graphviz binaries and libraries
 make
 
-# install everything to the temporary directory
+# install everything to the repo-local prefix
 make install
 ```
 
@@ -61,9 +62,10 @@ make install
 
 ```sh
 # you probably do not want to install your development version of Graphviz over
-# the top of your system binaries/libraries, so create a temporary directory as
-# an install destination
-PREFIX=$(mktemp -d)
+# the top of your system binaries/libraries, so install under a stable
+# repo-local prefix (survives /tmp wipes)
+mkdir -p dist
+PREFIX=${PWD}/dist
 
 # configure the build system
 cmake -DCMAKE_INSTALL_PREFIX=${PREFIX} -B build -S .
@@ -71,7 +73,7 @@ cmake -DCMAKE_INSTALL_PREFIX=${PREFIX} -B build -S .
 # compile Graphviz binaries and libraries
 cmake --build build
 
-# install everything to the temporary directory
+# install everything to the repo-local prefix
 cmake --install build
 ```
 
@@ -346,12 +348,12 @@ This runs a number of Graphviz commands, originating from user-reported
 performance problems, and compares the effect of your changes.
 
 To use it:
-1. Build Graphviz before your changes and install to, e.g., /tmp/before
-2. Build Graphviz after your changes and install to, e.g., /tmp/after
+1. Build Graphviz before your changes and install to, e.g., tmp/before
+2. Build Graphviz after your changes and install to, e.g., tmp/after
 3. Run a comparison
 
 ```bash
-python3 tests/compare_performance.py /tmp/before/bin/dot /tmp/after/bin/dot
+python3 tests/compare_performance.py tmp/before/bin/dot tmp/after/bin/dot
 ```
 
 This will take a _long_ time (10+ hours). But the script echoes what it is

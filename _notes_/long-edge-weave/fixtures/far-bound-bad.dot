@@ -1,0 +1,23 @@
+digraph FarBoundBad {
+  /* Case 2: notes left of Mid; RightKeep occupies far right Bound.
+     Want: virt in gutter Mid|RightKeep (near free), not past RightKeep.
+     Bound-side rightmost = outside RightKeep = long wrap. */
+  rankdir=TB;
+  nodesep=0.3;
+  ranksep=0.45;
+  splines=polyline;
+  node [shape=box];
+
+  Top [group=spine width=0.9];
+  Mid [group=spine width=0.9];
+  Bot [group=spine width=0.9];
+  Note [shape=note];
+  RightKeep [label="KeepOutXXXXXXXXXXXX" width=2.8];
+
+  Top -> Mid -> Bot;
+  Bot -> Top [constraint=false label="back"];
+
+  Note -> Mid [style=dotted arrowhead=none];
+  Mid -> RightKeep [style=invis weight=10];
+  { rank=same; Note; Mid; RightKeep; }
+}

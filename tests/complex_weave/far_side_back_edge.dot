@@ -1,0 +1,8 @@
+digraph FarSideBackEdge {
+  /* Two columns under Top. Low->Top must not wrap the other column's far outer. */
+  node [shape=box];
+
+  Top -> L1 -> L2 -> L3 -> Low;
+  Top -> R1 -> R2 -> R3 -> R4;
+  Low -> Top [constraint=false, label="back"];
+}

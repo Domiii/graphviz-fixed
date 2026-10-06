@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="432pt" height="941.00pt" viewBox="0.0 -36.0 432.13 941.0">
+<text x="16" y="-12.00" font-family="Helvetica,sans-serif" font-size="16" fill="#111">red = dot route    green = open corridor</text>
+<g transform="scale(1 1) rotate(0) translate(4 901)">
+<path fill="none" stroke="#b5b5b5" stroke-width="1" d="M301.13,-860.98C301.13,-851.94 301.13,-840.6 301.13,-830.35"/>
+<path fill="none" stroke="#b5b5b5" stroke-width="1" d="M301.13,-783.98C301.13,-774.94 301.13,-763.6 301.13,-753.35"/>
+<path fill="none" stroke="#b5b5b5" stroke-width="1" d="M301.13,-706.98C301.13,-697.94 301.13,-686.6 301.13,-676.35"/>
+<path fill="none" stroke="#b5b5b5" stroke-width="1" d="M203.38,-725C224.51,-725 245.64,-725 266.77,-725"/>
+<path fill="none" stroke="#b5b5b5" stroke-width="1" d="M301.13,-629.98C301.13,-620.94 301.13,-609.6 301.13,-599.35"/>
+<path fill="none" stroke="#b5b5b5" stroke-width="1" d="M89.53,-666.15C101.67,-674.06 116.97,-682.45 132.13,-686.5 178.51,-698.88 232.7,-680.88 266.97,-665.56"/>
+<path fill="none" stroke="#b5b5b5" stroke-width="1" d="M203.72,-648C224.78,-648 245.83,-648 266.89,-648"/>
+<path fill="none" stroke="#b5b5b5" stroke-width="1" d="M301.13,-552.98C301.13,-543.94 301.13,-532.6 301.13,-522.35"/>
+<path fill="none" stroke="#b5b5b5" stroke-width="1" d="M301.13,-475.84C301.13,-463.28 301.13,-445.98 301.13,-431.5"/>
+<path fill="none" stroke="#b5b5b5" stroke-width="1" d="M301.13,-384.98C301.13,-375.94 301.13,-364.6 301.13,-354.35"/>
+<path fill="none" stroke="#b5b5b5" stroke-width="1" d="M301.13,-307.98C301.13,-298.94 301.13,-287.6 301.13,-277.35"/>
+<path fill="none" stroke="#b5b5b5" stroke-width="1" d="M203.38,-326C224.51,-326 245.64,-326 266.77,-326"/>
+<path fill="none" stroke="#b5b5b5" stroke-width="1" d="M301.13,-230.98C301.13,-221.94 301.13,-210.6 301.13,-200.35"/>
+<path fill="none" stroke="#b5b5b5" stroke-width="1" d="M301.13,-153.98C301.13,-144.94 301.13,-133.6 301.13,-123.35"/>
+<path fill="none" stroke="#b5b5b5" stroke-width="1" d="M301.13,-76.98C301.13,-67.94 301.13,-56.6 301.13,-46.35"/>
+<polygon fill="#f4f4f4" stroke="#888" stroke-width="1" points="342.63,-897.00 259.63,-897.00 259.63,-861.00 342.63,-861.00"/>
+<text text-anchor="middle" x="301.13" y="-875.3" font-family="Times,serif" font-size="14.00">SpineTop</text>
+<polygon fill="#f4f4f4" stroke="#888" stroke-width="1" points="334.63,-820.00 267.63,-820.00 267.63,-784.00 334.63,-784.00"/>
+<text text-anchor="middle" x="301.13" y="-798.3" font-family="Times,serif" font-size="14.00">SpineA</text>
+<polygon fill="#f4f4f4" stroke="#888" stroke-width="1" points="335.13,-743.00 267.13,-743.00 267.13,-707.00 335.13,-707.00"/>
+<text text-anchor="middle" x="301.13" y="-721.3" font-family="Times,serif" font-size="14.00">SpineB</text>
+<polygon fill="#f4f4f4" stroke="#888" stroke-width="1" points="335.13,-666.00 267.13,-666.00 267.13,-630.00 335.13,-630.00"/>
+<text text-anchor="middle" x="301.13" y="-644.3" font-family="Times,serif" font-size="14.00">SpineC</text>
+<polygon fill="#f4f4f4" stroke="#888" stroke-width="1" points="197.13,-743.00 141.13,-743.00 141.13,-707.00 203.13,-707.00 203.13,-737.00"/>
+<text text-anchor="middle" x="172.13" y="-721.3" font-family="Times,serif" font-size="14.00">NoteB</text>
+<polygon fill="#f4f4f4" stroke="#888" stroke-width="1" points="335.13,-589.00 267.13,-589.00 267.13,-553.00 335.13,-553.00"/>
+<text text-anchor="middle" x="301.13" y="-567.3" font-family="Times,serif" font-size="14.00">SpineD</text>
+<polygon fill="#f4f4f4" stroke="#888" stroke-width="1" points="94.63,-666.00 29.63,-666.00 29.63,-630.00 100.63,-630.00 100.63,-660.00"/>
+<text text-anchor="middle" x="65.13" y="-644.3" font-family="Times,serif" font-size="14.00">NoteC1</text>
+<polygon fill="#f4f4f4" stroke="#888" stroke-width="1" points="197.63,-666.00 132.63,-666.00 132.63,-630.00 203.63,-630.00 203.63,-660.00"/>
+<text text-anchor="middle" x="168.13" y="-644.3" font-family="Times,serif" font-size="14.00">NoteC2</text>
+<polygon fill="#f4f4f4" stroke="#888" stroke-width="1" points="335.13,-512.00 267.13,-512.00 267.13,-476.00 335.13,-476.00"/>
+<text text-anchor="middle" x="301.13" y="-490.3" font-family="Times,serif" font-size="14.00">SpineE</text>
+<polygon fill="#f4f4f4" stroke="#888" stroke-width="1" points="334.63,-421.00 267.63,-421.00 267.63,-385.00 334.63,-385.00"/>
+<text text-anchor="middle" x="301.13" y="-399.3" font-family="Times,serif" font-size="14.00">SpineF</text>
+<polygon fill="#f4f4f4" stroke="#888" stroke-width="1" points="335.13,-344.00 267.13,-344.00 267.13,-308.00 335.13,-308.00"/>
+<text text-anchor="middle" x="301.13" y="-322.3" font-family="Times,serif" font-size="14.00">SpineG</text>
+<polygon fill="#f4f4f4" stroke="#888" stroke-width="1" points="335.63,-267.00 266.63,-267.00 266.63,-231.00 335.63,-231.00"/>
+<text text-anchor="middle" x="301.13" y="-245.3" font-family="Times,serif" font-size="14.00">SpineH</text>
+<polygon fill="#f4f4f4" stroke="#888" stroke-width="1" points="197.13,-344.00 141.13,-344.00 141.13,-308.00 203.13,-308.00 203.13,-338.00"/>
+<text text-anchor="middle" x="172.13" y="-322.3" font-family="Times,serif" font-size="14.00">NoteG</text>
+<polygon fill="#f4f4f4" stroke="#888" stroke-width="1" points="332.13,-190.00 270.13,-190.00 270.13,-154.00 332.13,-154.00"/>
+<text text-anchor="middle" x="301.13" y="-168.3" font-family="Times,serif" font-size="14.00">SpineI</text>
+<polygon fill="#f4f4f4" stroke="#888" stroke-width="1" points="332.13,-113.00 270.13,-113.00 270.13,-77.00 332.13,-77.00"/>
+<text text-anchor="middle" x="301.13" y="-91.3" font-family="Times,serif" font-size="14.00">SpineJ</text>
+<polygon fill="#f4f4f4" stroke="#888" stroke-width="1" points="342.13,-36.00 260.13,-36.00 260.13,0.00 342.13,0.00"/>
+<text text-anchor="middle" x="301.13" y="-14.3" font-family="Times,serif" font-size="14.00">SpineBot</text>
+<path fill="none" stroke="#c40000" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" d="M320.37,-36.31C330.69,-46.92 342.44,-61.42 348.13,-77 417.2,-266.06 368.28,-246.46 351.13,-267 285.71,-345.36 190.56,-229.64 125.13,-308 114.88,-320.28 114.89,-331.71 125.13,-344 190.25,-422.05 284.59,-307.31 350.13,-385 408.6,-454.3 411.26,-521.14 351.13,-589 250.78,-702.26 113.49,-516.74 13.13,-630 -33.76,-682.93 59.77,-716.03 125.13,-743 219.1,-781.76 285.02,-705.95 350.13,-784 367.7,-805.05 348.23,-833.43 328.88,-853.49"/>
+<path fill="none" stroke="#0a7a32" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" d="M342.13,-18.00 L382.63,-18.00 L382.63,-879.00 L342.63,-879.00"/>
+</g></svg>

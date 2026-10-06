@@ -1,0 +1,58 @@
+digraph TaskJourney {
+  rankdir=TB;
+  bgcolor="#1e1e1e";
+  labelloc=t;
+  label="weave repro";
+  fontsize=10;
+  fontcolor="#6e6e6e";
+  node [fontname=Helvetica, fontsize=11, fontcolor="#d4d4d4", color="#808080", fillcolor="#2d2d2d", style=filled, shape=box]
+  edge [fontname=Helvetica, fontsize=10, fontcolor="#c8c8c8", color="#808080"]
+
+  "JourneyRunner.run" [label="JR.run"];
+  "ToolRunner.run" [label="TR.run"];
+  "StepRunner.run" [label="SR.run"];
+  resolve_abstract_action [label="abs_act"];
+  runAbstractSequence [label="runAbsSeq"];
+  resolve_sequence [label="res_seq"];
+  report_defect [label="defect"];
+  runEmailStep [label="runEmail"];
+  resolve_email [label="res_email"];
+  resolve_missing_email [label="miss_email"];
+  evaluateChecks [label="evalChk"];
+  resolve_abstract_check [label="abs_chk"];
+  "ToolRunner.resolve" [label="TR.resolve"];
+  recoverStep [label="recover"];
+  preJudgeStep [label="preJudge"];
+  runRequirementsJudge [label="reqJudge"];
+  finishStep [label="finish"];
+  "JourneyRunState.end" [label="end"];
+
+  "JourneyRunner.run" -> "ToolRunner.run" [label="tools.run"];
+  "ToolRunner.run" -> "StepRunner.run" [label="first"];
+  "StepRunner.run" -> resolve_abstract_action [label="always"];
+  resolve_abstract_action -> runAbstractSequence [label="next"];
+  runAbstractSequence -> resolve_sequence [label="authored"];
+  resolve_sequence -> runAbstractSequence [constraint=false, label="loop / done"];
+  runAbstractSequence -> report_defect [label="seq fail"];
+  report_defect -> runAbstractSequence [constraint=false, label="verdict"];
+  runAbstractSequence -> runEmailStep [label="continue"];
+  runEmailStep -> resolve_email [label="awaitEmail+mail"];
+  runEmailStep -> resolve_missing_email [label="empty inbox"];
+  resolve_email -> runEmailStep [constraint=false, label="judged"];
+  resolve_missing_email -> runEmailStep [constraint=false, label="judged"];
+  runEmailStep -> evaluateChecks [label="!email / done"];
+  evaluateChecks -> resolve_abstract_check [label="abstract"];
+  resolve_abstract_check -> evaluateChecks [constraint=false, label="judged"];
+  evaluateChecks -> "ToolRunner.run" [constraint=false, label="return evaluated"];
+  "ToolRunner.run" -> "ToolRunner.resolve" [label="resolve(evaluated)"];
+  "ToolRunner.resolve" -> recoverStep [label="need recovery"];
+  recoverStep -> resolve_sequence [label="recover"];
+  resolve_sequence -> recoverStep [constraint=false, label="act loop"];
+  recoverStep -> report_defect [label="recover fail"];
+  "ToolRunner.resolve" -> preJudgeStep [label="no recovery / after"];
+  preJudgeStep -> runRequirementsJudge [label="pendingBug"];
+  runRequirementsJudge -> finishStep [label="approved / exhausted"];
+  runRequirementsJudge -> "ToolRunner.run" [constraint=false, label="reject → 'retry'"];
+  finishStep -> "JourneyRunState.end" [label="stopForBug / unperformable / unhealable"];
+  "JourneyRunner.run" -> "JourneyRunState.end" [label="passed / blocked"];
+}

@@ -1,0 +1,12 @@
+graph 1 2.7083 3.7361
+node Top 2.125 3.4861 0.75 0.5 Top solid box black lightgrey
+node Mid 2.125 2.4722 0.75 0.5 Mid solid box black lightgrey
+node Gap 2.125 1.2639 0.75 0.5 Gap solid box black lightgrey
+node Bot 2.125 0.25 0.75 0.5 Bot solid box black lightgrey
+node Note 0.56944 2.4722 0.75 0.5 Note solid note black lightgrey
+edge Top Mid 4 2.125 3.2335 2.125 3.1221 2.125 2.9868 2.125 2.8621 solid black
+edge Mid Gap 4 2.125 2.2194 2.125 2.0578 2.125 1.8409 2.125 1.6561 solid black
+edge Gap Bot 4 2.125 1.0113 2.125 0.89985 2.125 0.76455 2.125 0.63985 solid black
+edge Bot Top 16 2.3096 0.50119 2.4805 0.72092 2.7083 1.0139 2.7083 1.0139 2.7083 1.0139 2.7083 1.5139 2.7083 1.5139 2.7083 1.5139 0 2.2222 0 2.2222 0 2.2222 0 2.7222 0 2.7222 0 2.7222 0.98941 3.0714 1.618 3.2933 back 1.9583 1.8681 solid black
+edge Note Mid 10 0.94628 2.4722 1.0267 2.4722 1.088 2.4722 1.088 2.4722 1.088 2.4722 1.6065 2.4722 1.6065 2.4722 1.6065 2.4722 1.6678 2.4722 1.7482 2.4722 dotted black
+stop

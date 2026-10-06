@@ -1,1 +1,4 @@
-before = system `/usr/bin/dot` (unfixed). after = local fixed build (`GRAPHVIZ_PREFIX` or `/tmp/graphviz-prefix.*`). Re-run: `./pr-artifacts/render.sh`.
+before = system `/usr/bin/dot` (unfixed). after = local fixed build (`GRAPHVIZ_PREFIX` or `dist`).
+
+- `edge_shapes/`: re-run `GRAPHVIZ_PREFIX=$GRAPHVIZ_FIXED/dist ./pr-artifacts/render.sh`
+- `complex-weave/`: render from `tests/complex_weave/*.dot` and `_notes_/complex-weave/sample2.dot` (see PR notes)

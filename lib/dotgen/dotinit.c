@@ -71,8 +71,8 @@ dot_init_edge(edge_t * e)
 	ED_weight(e) *= 100;
     }
     if (nonconstraint_edge(e)) {
-	ED_xpenalty(e) = 0;
-	ED_weight(e) = 0;
+	ED_xpenalty(e) = 1;
+	ED_weight(e) = 1;
     }
 
     {

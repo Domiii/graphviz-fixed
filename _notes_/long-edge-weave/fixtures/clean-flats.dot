@@ -1,0 +1,35 @@
+digraph CleanFlats {
+  rankdir=TB;
+  nodesep=0.45;
+  ranksep=0.55;
+  splines=true;
+  node [shape=box];
+
+  SpineTop [group=spine];
+  SpineA [group=spine];
+  SpineB [group=spine];
+  NoteB [shape=note];
+  SpineC [group=spine];
+  NoteC1 [shape=note];
+  NoteC2 [shape=note];
+  SpineD [group=spine];
+  SpineE [group=spine];
+  SpineF [group=spine];
+  SpineG [group=spine];
+  NoteG [shape=note];
+  SpineH [group=spine];
+  SpineI [group=spine];
+  SpineJ [group=spine];
+  SpineBot [group=spine];
+
+  SpineTop -> SpineA -> SpineB -> SpineC -> SpineD -> SpineE -> SpineF -> SpineG -> SpineH -> SpineI -> SpineJ -> SpineBot;
+  SpineBot -> SpineTop [constraint=false label="back"];
+  NoteB -> SpineB [style=dotted arrowhead=none];
+  NoteC1 -> SpineC [style=dotted arrowhead=none];
+  NoteC2 -> SpineC [style=dotted arrowhead=none];
+  NoteG -> SpineG [style=dotted arrowhead=none];
+
+  { rank=same; NoteB; SpineB; }
+  { rank=same; NoteC1; NoteC2; SpineC; }
+  { rank=same; NoteG; SpineG; }
+}

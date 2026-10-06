@@ -1,0 +1,17 @@
+source: fixtures/clean-flats.dot  back-edge SpineBot→SpineTop
+red: dot route (constraint=false back-edge)
+green: open corridor right of Spine column
+route: right side of SpineBot, jog to x=382.6, vertical, jog to right side of SpineTop
+clearance_pt: 8.0
+green_points: [(342.13, -18.0), (382.63, -18.0), (382.63, -879.0), (342.63, -879.0)]
+corridor_blocked: no
+attachment: only endpoints within 8pt of a node are departure from SpineBot and arrival at SpineTop
+red_length_pt: 1885.4
+green_length_pt: 941.5
+red_turning_deg: 887.1
+green_turning_deg: 180.0
+red_horizontal_reversals: 5
+green_horizontal_reversals: 1
+red_crossings: 3
+green_crossings: 0
+green_crossing_edges:

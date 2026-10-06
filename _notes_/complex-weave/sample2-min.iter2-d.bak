@@ -1,0 +1,80 @@
+digraph TaskJourney {
+  rankdir=TB;
+  bgcolor="#1e1e1e";
+  labelloc=t;
+  label="task-journey (runtime) — minimized weave repro";
+  fontsize=10;
+  fontcolor="#6e6e6e";
+  node [fontname=Helvetica, fontsize=11, fontcolor="#d4d4d4", color="#808080", fillcolor="#2d2d2d", style=filled, shape=box]
+  edge [fontname=Helvetica, fontsize=10, fontcolor="#c8c8c8", color="#808080"]
+
+  "JourneyRunner.run" [label="JourneyRunner.run\njourney-runner.ts"];
+  "ToolRunner.run" [label="ToolRunner.run\ntool-runner.ts"];
+  "StepRunner.run" [label="StepRunner.run\nstep-runner.ts"];
+  resolveAbstractAction [label="resolveAbstractAction\nstep-actions.ts"];
+  resolve_abstract_action [shape=hexagon, label="resolve_abstract_action\nhandleAbstractAction"];
+  runAbstractSequence [label="runAbstractSequence\nstep-actions.ts"];
+  resolve_sequence [shape=hexagon, label="resolve_sequence\nsequenceStep"];
+  report_defect [shape=hexagon, label="report_defect\nauthorSequenceDefect"];
+  runEmailStep [label="runEmailStep\nstep-actions.ts"];
+  resolve_email [shape=hexagon, label="resolve_email\nhandleAwaitEmail"];
+  resolve_missing_email [shape=hexagon, label="resolve_missing_email\nhandleMissingEmail"];
+  consumeRejudge [label="consumeRejudge\ntool-run-state.ts"];
+  executeAction [label="executeAction\nstep-actions.ts"];
+  resolve_action_failure [shape=hexagon, label="resolve_action_failure\nhandleActionFailure"];
+  evaluateChecks [label="evaluateChecks\nstep-checks.ts"];
+  resolve_check_failure [shape=hexagon, label="resolve_check_failure\nhandleCheckFailure"];
+  resolve_abstract_check [shape=hexagon, label="resolve_abstract_check\nevaluateAbstractCheck"];
+  "ToolRunner.resolve" [label="ToolRunner.resolve\ntool-runner.ts"];
+  recoverStep [label="recoverStep\ntool-runner.ts"];
+  recoverPage [label="recoverPage\ntool-runner.ts"];
+  preJudgeStep [label="preJudgeStep\ntool-runner.ts"];
+  runRequirementsJudge [shape=diamond, label="runRequirementsJudge\npreJudgeBug\n(JudgeAgent)"];
+  finishStep [label="finishStep\ntool-runner.ts"];
+  "JourneyRunState.end" [label="JourneyRunState.end\nrun-state.ts"];
+
+  { rank=same; resolve_action_failure; resolve_check_failure }
+  { rank=same; resolve_abstract_action; resolve_abstract_check }
+  { rank=same; resolve_email; resolve_missing_email }
+
+  "JourneyRunner.run" -> "ToolRunner.run" [label="tools.run"];
+  "ToolRunner.run" -> "StepRunner.run" [label="first"];
+  "ToolRunner.run" -> "StepRunner.run" [label="retry"];
+  "StepRunner.run" -> resolveAbstractAction [label="always"];
+  resolveAbstractAction -> resolve_abstract_action [label="type===abstract"];
+  resolve_abstract_action -> resolveAbstractAction [constraint=false, label="judged"];
+  resolveAbstractAction -> runAbstractSequence [label="next"];
+  runAbstractSequence -> resolve_sequence [label="authored"];
+  resolve_sequence -> runAbstractSequence [constraint=false, label="loop / done"];
+  runAbstractSequence -> report_defect [label="seq fail"];
+  report_defect -> runAbstractSequence [constraint=false, label="verdict"];
+  runAbstractSequence -> runEmailStep [label="continue"];
+  runEmailStep -> resolve_email [label="awaitEmail+mail"];
+  runEmailStep -> resolve_missing_email [label="empty inbox"];
+  resolve_email -> runEmailStep [constraint=false, label="judged"];
+  resolve_missing_email -> runEmailStep [constraint=false, label="judged"];
+  runEmailStep -> consumeRejudge [label="!email / done"];
+  runEmailStep -> "JourneyRunState.end" [constraint=false, label="email terminal", style=dashed];
+  consumeRejudge -> executeAction [label="!rejudgeOnly"];
+  executeAction -> resolve_action_failure [label="executionError"];
+  resolve_action_failure -> executeAction [constraint=false, label="replace / retry"];
+  executeAction -> evaluateChecks [label="observe+checks"];
+  evaluateChecks -> resolve_check_failure [label="!passed"];
+  evaluateChecks -> resolve_abstract_check [label="abstract"];
+  resolve_abstract_check -> evaluateChecks [constraint=false, label="judged"];
+  evaluateChecks -> "ToolRunner.run" [constraint=false, label="return evaluated"];
+  "ToolRunner.run" -> "ToolRunner.resolve" [label="resolve(evaluated)"];
+  "ToolRunner.resolve" -> recoverStep [label="need recovery"];
+  recoverStep -> recoverPage [label="await"];
+  recoverPage -> resolve_sequence [label="recover"];
+  resolve_sequence -> recoverPage [constraint=false, label="act loop"];
+  recoverStep -> report_defect [label="recover fail"];
+  recoverStep -> "ToolRunner.run" [constraint=false, label="return 'retry'"];
+  "ToolRunner.resolve" -> preJudgeStep [label="no recovery / after"];
+  preJudgeStep -> runRequirementsJudge [label="pendingBug"];
+  runRequirementsJudge -> finishStep [label="approved / exhausted"];
+  runRequirementsJudge -> "ToolRunner.run" [constraint=false, label="reject → 'retry'"];
+  finishStep -> "JourneyRunState.end" [label="stopForBug / unperformable / unhealable"];
+  finishStep -> "ToolRunner.run" [constraint=false, label="'next' → advance"];
+  "JourneyRunner.run" -> "JourneyRunState.end" [label="passed / blocked"];
+}

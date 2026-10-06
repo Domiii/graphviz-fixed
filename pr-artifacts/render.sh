@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Render before/after SVGs for tests/edge_shapes/*.dot
 # before = system /usr/bin/dot (unfixed)
-# after  = local fixed install (GRAPHVIZ_PREFIX or /tmp/graphviz-prefix.*)
+# after  = local fixed install (GRAPHVIZ_PREFIX or $ROOT/dist)
 
 set -euo pipefail
 
@@ -12,12 +12,13 @@ FIXTURES="${ROOT}/tests/edge_shapes"
 BEFORE_DOT="${BEFORE_DOT:-/usr/bin/dot}"
 
 if [ -z "${GRAPHVIZ_PREFIX:-}" ]; then
-  GRAPHVIZ_PREFIX="$(ls -d /tmp/graphviz-prefix.* 2>/dev/null | head -1 || true)"
+  GRAPHVIZ_PREFIX="${ROOT}/dist"
 fi
 
 if [ -z "${GRAPHVIZ_PREFIX}" ] || [ ! -x "${GRAPHVIZ_PREFIX}/bin/dot" ]; then
   echo "No fixed install found. Build per DEVELOPERS.md, e.g.:" >&2
-  echo "  PREFIX=\$(mktemp -d -t graphviz-prefix.XXXXXX)" >&2
+  echo "  mkdir -p ${ROOT}/dist" >&2
+  echo "  PREFIX=${ROOT}/dist" >&2
   echo "  cmake -DCMAKE_INSTALL_PREFIX=\${PREFIX} -B build -S ." >&2
   echo "  cmake --build build && cmake --install build" >&2
   echo "  GRAPHVIZ_PREFIX=\${PREFIX} $0" >&2

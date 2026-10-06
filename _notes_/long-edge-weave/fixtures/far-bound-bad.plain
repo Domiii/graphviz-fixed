@@ -1,0 +1,12 @@
+graph 1 6.2917 2.4167
+node Top 2.4306 2.1667 0.90278 0.5 Top solid box black lightgrey
+node Mid 2.4306 1.2083 0.90278 0.5 Mid solid box black lightgrey
+node Bot 2.4306 0.25 0.90278 0.5 Bot solid box black lightgrey
+node Note 1 1.2083 0.75 0.5 Note solid note black lightgrey
+node RightKeep 4.8889 1.2083 2.8056 0.5 KeepOutXXXXXXXXXXXX solid box black lightgrey
+edge Top Mid 4 2.4306 1.9131 2.4306 1.8194 2.4306 1.7096 2.4306 1.6055 solid black
+edge Mid Bot 4 2.4306 0.9548 2.4306 0.8611 2.4306 0.75129 2.4306 0.64714 solid black
+edge Mid RightKeep 7 2.8834 1.2083 3.0729 1.2083 3.25 1.2083 3.25 1.2083 3.25 1.2083 3.2857 1.2083 3.3422 1.2083 invis black
+edge Bot Top 10 1.9791 0.39288 1.2762 0.59371 0 0.95833 0 0.95833 0 0.95833 0 1.4583 0 1.4583 0 1.4583 1.1263 1.7801 1.8455 1.9856 back 0.23611 1.2083 solid black
+edge Note Mid 10 1.3757 1.2083 1.4348 1.2083 1.4769 1.2083 1.4769 1.2083 1.4769 1.2083 1.9537 1.2083 1.9537 1.2083 1.9537 1.2083 1.9612 1.2083 1.9742 1.2083 dotted black
+stop
