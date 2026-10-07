@@ -1,0 +1,14 @@
+digraph CrossColumnGap {
+  /* Back edge B→A sits in the free gap between the columns; it must not be
+     pulled across column A's Mid|Note block. */
+  rankdir=TB; nodesep=0.4; ranksep=0.5; splines=polyline;
+  node [shape=box];
+  ATop [group=a]; AMid [group=a]; AGap [group=a]; ABot [group=a];
+  ANote [shape=note];
+  ATop -> AMid -> AGap -> ABot;
+  AMid -> ANote [style=dotted arrowhead=none];
+  { rank=same; AMid; ANote; }
+  BTop [group=b]; BMid [group=b]; BGap [group=b]; BBot [group=b];
+  BTop -> BMid -> BGap -> BBot;
+  BBot -> ATop [constraint=false label="backX"];
+}
