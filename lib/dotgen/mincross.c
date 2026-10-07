@@ -1473,6 +1473,18 @@ static void flat_component_bounds(graph_t *g, int r, int *flo, int *fhi) {
   }
 }
 
+/* virt sits in a gap toward another column, not parked outside its block */
+static bool foreign_node_beyond(graph_t *g, node_t *virt, int side) {
+  const int r = ND_rank(virt);
+  node_t **vs = GD_rank(g)[r].v;
+  for (int i = ND_order(virt) - ND_order(vs[0]) - side;
+       i >= 0 && i < GD_rank(g)[r].n; i -= side) {
+    if (ND_node_type(vs[i]) == NORMAL && !in_flat_component(g, vs[i]))
+      return true;
+  }
+  return false;
+}
+
 static void place_free_long_virts(graph_t *g, int r) {
   node_t *spine = spine_of_rank(g, r);
   nodes_t virts = {0};
@@ -1509,6 +1521,8 @@ static void place_free_long_virts(graph_t *g, int r) {
       else if (flo < so && fhi > so)
         side = 1;
     }
+    if (side && foreign_node_beyond(g, virt, side))
+      side = 0;
     while (side && (side < 0 ? ND_order(virt) > so : ND_order(virt) < so)) {
       int o = ND_order(virt);
       node_t *nb = GD_rank(Root)[r].v[side < 0 ? o - 1 : o + 1];

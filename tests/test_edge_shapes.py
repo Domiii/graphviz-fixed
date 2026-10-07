@@ -229,3 +229,23 @@ def test_not_notes_far_outer():
     assert_left_of(mid, right)
     assert_not_beyond_far_outer(edge, mid, note)
     assert_on_free_side(edge, mid, "R")
+
+
+def test_cross_column_not_pulled_across_block():
+    """
+    Column B→A back edge stays on column B's side of AMid at AMid's rank.
+    """
+
+    graph = load_layout("cross_column_gap.dot")
+    a_mid = node_by_name(graph, "AMid")
+    b_mid = node_by_name(graph, "BMid")
+    edge = draw_points(
+        edge_by_ends(graph, node_by_name(graph, "BBot"), node_by_name(graph, "ATop"))
+    )
+
+    a_x = (bbox(a_mid)[0] + bbox(a_mid)[2]) / 2
+    b_side = (bbox(b_mid)[0] + bbox(b_mid)[2]) / 2 - a_x
+    xs = x_at_y(edge, center_y(a_mid))
+    assert all(
+        (x - a_x) * b_side > 0 for x in xs
+    ), "BBot→ATop pulled across column A's Mid|Note block"

@@ -617,9 +617,18 @@ def test_925():
     assert "ААА ААА ААА" in svg, "incorrect spacing in UTF-8 label"
 
 
-@pytest.mark.parametrize("testcase", ("1213-1.dot", "1213-2.dot"))
-@pytest.mark.xfail(
-    strict=True, reason="https://gitlab.com/graphviz/graphviz/-/issues/1213"
+@pytest.mark.parametrize(
+    "testcase",
+    (
+        pytest.param(
+            "1213-1.dot",
+            marks=pytest.mark.xfail(
+                strict=True,
+                reason="https://gitlab.com/graphviz/graphviz/-/issues/1213",
+            ),
+        ),
+        "1213-2.dot",
+    ),
 )
 def test_1213(testcase: str):
     """
