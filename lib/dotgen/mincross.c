@@ -1060,6 +1060,18 @@ static void flat_rev(Agraph_t *g, Agedge_t *e) {
   }
 }
 
+static edge_t *orig_edge(edge_t *e) {
+  while (ED_to_orig(e))
+    e = ED_to_orig(e);
+  return e;
+}
+
+/* constraint=false imposes no flat order (order edges have no attrs) */
+static bool nonconstraint_flat(edge_t *e) {
+  e = orig_edge(e);
+  return ED_edge_type(e) == NORMAL && nonconstraint_edge(e);
+}
+
 static void flat_search(graph_t *g, node_t *v) {
   int i;
   bool hascl;
@@ -1073,7 +1085,7 @@ static void flat_search(graph_t *g, node_t *v) {
     for (i = 0; (e = ND_flat_out(v).list[i]); i++) {
       if (hascl && !(agcontains(g, agtail(e)) && agcontains(g, aghead(e))))
         continue;
-      if (ED_weight(e) == 0)
+      if (ED_weight(e) == 0 || nonconstraint_flat(e))
         continue;
       if (ND_onstack(aghead(e))) {
         matrix_set(M, (size_t)flatindex(aghead(e)),
@@ -1299,7 +1311,7 @@ void enqueue_neighbors(node_queue_t *q, node_t *n0, int pass) {
 }
 
 static bool constraining_flat_edge(Agraph_t *g, Agedge_t *e) {
-  if (ED_weight(e) == 0)
+  if (ED_weight(e) == 0 || nonconstraint_flat(e))
     return false;
   if (!inside_cluster(g, agtail(e)))
     return false;
@@ -1329,10 +1341,7 @@ static void postorder(graph_t *g, node_t *v, nodes_t *list, int r) {
 }
 
 static edge_t *orig_edge_of_virt(node_t *v) {
-  edge_t *e = ND_out(v).list[0];
-  while (ED_to_orig(e))
-    e = ED_to_orig(e);
-  return e;
+  return orig_edge(ND_out(v).list[0]);
 }
 
 static bool is_free_long_edge_virt(graph_t *g, node_t *v) {
@@ -1437,22 +1446,25 @@ static void restore_constraining_flat_lr(graph_t *g, int r) {
   } while (progress);
 }
 
+static bool in_flat_component(graph_t *g, node_t *v) {
+  if (ND_node_type(v) != NORMAL)
+    return false;
+  for (size_t j = 0; j < ND_flat_in(v).size; j++)
+    if (constraining_flat_edge(g, ND_flat_in(v).list[j]))
+      return true;
+  for (size_t j = 0; j < ND_flat_out(v).size; j++)
+    if (constraining_flat_edge(g, ND_flat_out(v).list[j]))
+      return true;
+  return false;
+}
+
 /* Flat NORMAL component on this rank: orders of NORMALs with constraining flats. */
 static void flat_component_bounds(graph_t *g, int r, int *flo, int *fhi) {
   *flo = INT_MAX;
   *fhi = INT_MIN;
   for (int i = 0; i < GD_rank(g)[r].n; i++) {
     node_t *v = GD_rank(g)[r].v[i];
-    bool has = false;
-    if (ND_node_type(v) != NORMAL)
-      continue;
-    for (size_t j = 0; j < ND_flat_in(v).size && !has; j++)
-      if (constraining_flat_edge(g, ND_flat_in(v).list[j]))
-        has = true;
-    for (size_t j = 0; j < ND_flat_out(v).size && !has; j++)
-      if (constraining_flat_edge(g, ND_flat_out(v).list[j]))
-        has = true;
-    if (!has)
+    if (!in_flat_component(g, v))
       continue;
     if (ND_order(v) < *flo)
       *flo = ND_order(v);
@@ -1500,6 +1512,9 @@ static void place_free_long_virts(graph_t *g, int r) {
     while (side && (side < 0 ? ND_order(virt) > so : ND_order(virt) < so)) {
       int o = ND_order(virt);
       node_t *nb = GD_rank(Root)[r].v[side < 0 ? o - 1 : o + 1];
+      /* only reorder within the Note/Mid flat component, not across columns */
+      if (!in_flat_component(g, nb))
+        break;
       if (side < 0 ? left2right(g, nb, virt) : left2right(g, virt, nb))
         break;
       exchange(side < 0 ? nb : virt, side < 0 ? virt : nb);
