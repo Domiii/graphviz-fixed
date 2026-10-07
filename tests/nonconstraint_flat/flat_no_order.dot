@@ -1,0 +1,8 @@
+digraph NonconstraintFlatNoOrder {
+  /* y -> x is constraint=false: it must not order x, y against a -> x, b -> y. */
+  node [shape=box];
+  { rank=same; a -> b; }
+  a -> x; b -> y;
+  { rank=same; x; y; }
+  y -> x [constraint=false];
+}
