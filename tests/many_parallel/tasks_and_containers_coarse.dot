@@ -1,0 +1,127 @@
+digraph TasksAndContainerPoolCoarse {
+  rankdir=TB;
+  newrank=true;
+  compound=true;
+  labelloc=t;
+  label="Tasks and Container Pool — coarse task/container state machine\nwire: task webhook (container-task-webhook GET claim · POST actions) + container events (container-events task.started · task.done · container.idle) + container HTTP (/wakeup · /detach)\nedges: solid = call/HTTP · dotted = DB read · dashed = postWebhook (fire-and-forget) · constraint=false = back edge\nbaseline: loop-qa 809b5ccaa · app-building d3aa25e16f5";
+  fontsize=10;
+  fontcolor="#6e6e6e";
+  fontname=Helvetica;
+  node [fontname=Helvetica, fontsize=11, fontcolor="#d4d4d4", color="#808080", fillcolor="#2d2d2d", style=filled, shape=box];
+  edge [fontname=Helvetica, fontsize=9, fontcolor="#c8c8c8", color="#808080"];
+
+  // ── loop-qa: Netlify functions + tasks table ──
+  subgraph cluster_loopqa {
+    label="loop-qa — Netlify functions (netlify/functions/)";
+    fontcolor="#a0a0a0";
+    color="#606060";
+    style=dashed;
+
+    subgraph cluster_tasks {
+      label="tasks (work queue)";
+      fontcolor="#a0a0a0";
+      color="#606060";
+      style=dotted;
+      node [shape=ellipse];
+      queued [shape=cylinder, label="tasks\nstatus='queued'"];
+      unacked [label="status='running'\npicked_up_at IS NULL"];
+      acked [label="status='running'\npicked_up_at set\n(∨ parallel child)"];
+      terminal [label="status=\n'completed' | 'failed'", fillcolor="#3d1520", fontcolor="#ffe4e8"];
+    }
+
+    spawn [label="triggerSpawnForProject →\nspawn-workers-background\nstealPoolContainer | spawnContainer\n· ensureParallelHarnessTasks"];
+    claim [label="container-task-webhook GET\nclaimNextTask\n① stopIfGuidanceStale ⇒ null\n② re-deliver unacked\n③ UPDATE queued→running"];
+    empty [label="claim = null ⇒ {tasks: []}\nrole='worker': DELETE app_containers\n· POST /detach"];
+    post [label="container-task-webhook POST\ndispatchWebhookAction (taskScope)\nthrow ⇒ 500"];
+    ce_started [label="container-events\ntask.started"];
+    ce_idle [label="container-events\ncontainer.idle"];
+    ce_done [label="container-events\ntask.done\nok ⇒ 200 · throw ⇒ 500"];
+    finalize [label="finalizeTaskDone\nreconcileHarnessChildren ·\nfailTask | completeTask ·\nfinalizeRunForTerminalTask"];
+    retry [label="trigger*RetryIfNeeded ·\nmaybeRetriggerFailedJourneyRun\n(caps · no_retry)"];
+    reap [label="cron-reap → reapContainers\nreapOverdueTasks · reapDeadTasks\n→ reapZombie"];
+    orphan [label="reapContainers Phase 1\norphaned workers"];
+  }
+
+  // ── app-building: container worker (src/server.ts) ──
+  subgraph cluster_container {
+    label="app-building — container worker (src/server.ts processLoop)";
+    fontcolor="#8fb0d8";
+    color="#5a7fa8";
+    style=dashed;
+    node [fillcolor="#1f2f45", color="#5a7fa8"];
+
+    drain [label="processLoop head\nTaskCompletionOutbox.drain"];
+    fetch [label="fetchTaskFromWebhook\n0 tasks | !res.ok | error ⇒ null"];
+    process [label="state='processing'\nprocessTask (setup → agent)"];
+    outbox [shape=ellipse, label="outbox file\ntask-completions/<taskId>.json"];
+    idle [label="state='idle'\nwaitForWake()"];
+    exit [label="container.stopping · stopped\nshutdown(0)", fillcolor="#3d1520", fontcolor="#ffe4e8"];
+
+    subgraph cluster_scripts {
+      label="loop-qa task scripts (task.setup, in container)";
+      fontcolor="#a0a0a0";
+      color="#606060";
+      style=dotted;
+      node [shape=component, fillcolor="#2d2d2d", color="#808080"];
+      driver [label="setup harness\nrun-recorded-browse.ts | run-recorded-mcp.ts"];
+      harness [label="run-recorded-mcp-parallel.ts\nclaimChild · runChild · finishChild"];
+      heartbeat [label="task-heartbeat.ts"];
+    }
+  }
+
+  // ── spine: provision → claim ──
+  queued -> spawn [style=dotted, label="countWorkersNeededForProject"];
+  spawn -> drain [label="spawnContainer ⇒ processLoop"];
+  spawn -> idle [constraint=false, label="stealPoolContainer ⇒\nPOST /wakeup"];
+  spawn -> queued [constraint=false, label="INSERT HARNESS"];
+  drain -> fetch [label="all acked"];
+  fetch -> claim [label="GET TASK_WEBHOOK_URL"];
+  queued -> claim [style=dotted, label="FOR UPDATE SKIP LOCKED"];
+  claim -> unacked [label="③"];
+  unacked -> claim [constraint=false, style=dotted, label="②"];
+  claim -> empty [label="null"];
+  claim -> process [label="200 {tasks: [task]}"];
+
+  // ── no work ──
+  fetch -> idle [label="null"];
+  empty -> idle [label="{tasks: []}"];
+  empty -> exit [label="POST /detach ⇒ detachRequested"];
+  idle -> exit [label="detachRequested"];
+  idle -> ce_idle [style=dashed, label="container.idle"];
+  unacked -> ce_idle [style=dotted];
+  ce_idle -> idle [constraint=false, label="∃ unacked ⇒ POST /wakeup"];
+  idle -> drain [constraint=false, label="wake()"];
+
+  // ── execute ──
+  process -> ce_started [style=dashed, label="task.started"];
+  ce_started -> acked [label="picked_up_at = NOW()"];
+  process -> driver [label="setup"];
+  process -> harness [label="setup: HARNESS"];
+  process -> heartbeat [label="setup: nohup"];
+  driver -> post [label="call-llm · report-run-outcome"];
+  harness -> post [label="ack-pickup ·\nclaim-/finish-parallel-child"];
+  heartbeat -> post [label="task-heartbeat"];
+  post -> acked [label="ack-pickup ·\nclaim-parallel-child"];
+  post -> finalize [label="finish-parallel-child"];
+
+  // ── completion ──
+  driver -> outbox [label="exit ⇒ enqueue"];
+  harness -> outbox [label="'Queue drained' ⇒ enqueue"];
+  outbox -> drain [constraint=false, label="drain after task"];
+  drain -> ce_done [label="deliverTaskCompletion\nPOST task.done"];
+  ce_done -> drain [constraint=false, label="2xx ⇒ unlink (ack)\n¬2xx ⇒ retain + backoff"];
+  ce_done -> finalize [label="requireReconciliation"];
+  acked -> finalize [style=dotted];
+  finalize -> terminal [label="failTask | completeTask"];
+  finalize -> retry [label="failed"];
+  retry -> queued [constraint=false, label="INSERT 'queued'"];
+
+  // ── sweep (backstop) ──
+  unacked -> reap [style=dotted, label="CLAIM_ACK_GRACE_MS 8m"];
+  acked -> reap [style=dotted, label="MAX_TASK_RUNTIME_MS 2h ∨\n¬probeRemoteContainer"];
+  reap -> terminal [label="failTask(zombie | unclaimed)"];
+  reap -> retry [label="retrigger"];
+  reap -> exit [constraint=false, label="stopRemoteContainer"];
+  terminal -> orphan [style=dotted, label="∄ running"];
+  orphan -> exit [constraint=false, label="stopRemoteContainer"];
+}

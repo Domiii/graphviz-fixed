@@ -223,8 +223,12 @@ checkFlatAdjacent (edge_t* e)
 	hi = ND_order(tn);
     }
     rank = &GD_rank(dot_root(tn))[ND_rank(tn)];
+    /* newrank fill nodes are removed before splines: they do not separate */
+    Agraph_t* fill = agsubg(dot_root(tn), "_new_rank", 0);
     for (i = lo + 1; i < hi; i++) {
 	n = rank->v[i];
+	if (ND_node_type(n) == NORMAL && fill && agsubnode(fill, n, 0))
+	    continue;
 	if ((ND_node_type(n) == VIRTUAL && ND_label(n)) || 
              ND_node_type(n) == NORMAL)
 	    break;

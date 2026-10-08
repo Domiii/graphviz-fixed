@@ -12,6 +12,7 @@
 
 #include <assert.h>
 #include <limits.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -42,6 +43,8 @@ static int mkspline(Ppoint_t *, int, const tna_t *, Ppoint_t, Ppoint_t,
 static int splinefits(Pedge_t *, size_t, Ppoint_t, Pvector_t, Ppoint_t,
 		      Pvector_t, Ppoint_t *, int);
 static int splineisinside(Pedge_t *, size_t, Ppoint_t *);
+static void route_dirs(const Ppoint_t *, int, int *);
+static bool splineismonotone(const Ppoint_t *, const int *);
 static int splineintersectsline(Ppoint_t *, Ppoint_t *, double *);
 static void points2coeff(double, double, double, double, double *);
 static void addroot(double, double *, int *);
@@ -218,6 +221,8 @@ static int splinefits(Pedge_t *edges, size_t edgen, Ppoint_t pa, Pvector_t va,
     int first = 1;
 
     forceflag = (inpn == 2 ? 1 : 0);
+    int dir[2];
+    route_dirs(inps, inpn, dir);
 
     a = 4;
     for (;;) {
@@ -242,7 +247,7 @@ static int splinefits(Pedge_t *edges, size_t edgen, Ppoint_t pa, Pvector_t va,
 	    return 0;
 	first = 0;
 
-	if (splineisinside(edges, edgen, &sps[0])) {
+	if (splineismonotone(sps, dir) && splineisinside(edges, edgen, &sps[0])) {
 	    if (growops(opl + 4) < 0) {
 		return -1;
 	    }
@@ -278,6 +283,40 @@ static int splinefits(Pedge_t *edges, size_t edgen, Ppoint_t pa, Pvector_t va,
     fprintf(stderr, "failure\n");
 #endif
     return 0;
+}
+
+/* per axis: +1/-1 if the route is monotone along it, else 0 */
+static void route_dirs(const Ppoint_t *inps, int inpn, int *dir) {
+    for (int k = 0; k < 2; k++) {
+	bool inc = false, dec = false;
+	for (int i = 1; i < inpn; i++) {
+	    const double d = k ? inps[i].y - inps[i - 1].y : inps[i].x - inps[i - 1].x;
+	    inc |= d > 0;
+	    dec |= d < 0;
+	}
+	dir[k] = inc == dec ? 0 : inc ? 1 : -1;
+    }
+}
+
+/* A piece advancing along an axis in which its route is monotone must not
+ * backtrack along it. Its derivative there is the quadratic Bernstein
+ * polynomial (d0,d1,d2); with d0,d2 >= 0 it is >= 0 on [0,1] iff
+ * d1 >= -sqrt(d0*d2). End tangents fixed against the travel are exempt.
+ */
+static bool splineismonotone(const Ppoint_t *sps, const int *dir) {
+    for (int k = 0; k < 2; k++) {
+	if (dir[k] == 0)
+	    continue;
+	double c[4];
+	for (int i = 0; i < 4; i++)
+	    c[i] = dir[k] * (k ? sps[i].y : sps[i].x);
+	const double d0 = c[1] - c[0], d1 = c[2] - c[1], d2 = c[3] - c[2];
+	if (c[3] <= c[0] || d0 < 0 || d2 < 0)
+	    continue;
+	if (d1 < 0 && d1 * d1 > d0 * d2)
+	    return false;
+    }
+    return true;
 }
 
 static int splineisinside(Pedge_t *edges, size_t edgen, Ppoint_t *sps) {

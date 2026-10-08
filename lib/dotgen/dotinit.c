@@ -193,6 +193,25 @@ void dot_cleanup(graph_t * g)
     dot_cleanup_graph(g);
 }
 
+/* Cluster rank lists are windows into the root's; keep them aligned after
+ * the root slot `at` of rank rk is removed.
+ */
+static void
+shift_cluster_ranks (Agraph_t * g, int rk, Agnode_t** at)
+{
+    for (int c = 1; c <= GD_n_cluster(g); c++) {
+	Agraph_t* sg = GD_clust(g)[c];
+	if (GD_rank(sg) && GD_minrank(sg) <= rk && rk <= GD_maxrank(sg)) {
+	    rank_t* r = &GD_rank(sg)[rk];
+	    if (r->v > at)
+		r->v--;
+	    else if (at < r->v + r->n)
+		r->n--;
+	}
+	shift_cluster_ranks (sg, rk, at);
+    }
+}
+
 static void
 remove_from_rank (Agraph_t * g, Agnode_t* n)
 {
@@ -202,8 +221,10 @@ remove_from_rank (Agraph_t * g, Agnode_t* n)
     for (j = 0; j < GD_rank(g)[rk].n; j++) {
 	v = GD_rank(g)[rk].v[j];
 	if (v == n) {
+	    shift_cluster_ranks (g, rk, &GD_rank(g)[rk].v[j]);
 	    for (j++; j < GD_rank(g)[rk].n; j++) {
 		GD_rank(g)[rk].v[j-1] = GD_rank(g)[rk].v[j];
+		ND_order(GD_rank(g)[rk].v[j-1]) = j - 1;
 	    }
 	    GD_rank(g)[rk].n--;
 	    break;
@@ -213,9 +234,9 @@ remove_from_rank (Agraph_t * g, Agnode_t* n)
 }
 
 /* removeFill:
- * This removes all of the fill nodes added in mincross.
- * It appears to be sufficient to remove them only from the
- * rank array and fast node list of the root graph.
+ * This removes all of the fill nodes added in mincross from the root's
+ * rank arrays and fast node list. Later phases index rank arrays by
+ * ND_order, so remove_from_rank renumbers the shifted nodes.
  */
 static void
 removeFill (Agraph_t * g)
