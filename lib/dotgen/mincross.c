@@ -121,13 +121,14 @@ static int edgeidcmpf(const void *, const void *);
 static void flat_breakcycles(graph_t *g);
 static void flat_reorder(graph_t *g);
 static void place_free_long_virts(graph_t *g, int r);
+static void untangle_adjacent_chains(graph_t *g);
 static void flat_search(graph_t *g, node_t *v);
 static void init_mincross(graph_t *g);
 static void merge2(graph_t *g);
 static void init_mccomp(graph_t *g, size_t c);
 
 /// @param have_vlists Are there vlists that need resetting?
-static void cleanup2(graph_t *g, int64_t nc, bool have_vlists);
+static void cleanup2(graph_t *g, int64_t nc, bool have_vlists, bool untangle);
 
 /// @return minimum crossings on success, negative value on failure
 static int64_t mincross_clust(graph_t *g);
@@ -402,7 +403,7 @@ done:
   if (rc == 0)
     for (int r = GD_minrank(g); r <= GD_maxrank(g); r++)
       place_free_long_virts(g, r);
-  cleanup2(g, nc, has_set_vlists);
+  cleanup2(g, nc, has_set_vlists, rc == 0);
   return rc;
 }
 
@@ -833,7 +834,7 @@ static void merge2(graph_t *g) {
   }
 }
 
-static void cleanup2(graph_t *g, int64_t nc, bool has_vlists) {
+static void cleanup2(graph_t *g, int64_t nc, bool has_vlists, bool untangle) {
   int i, j, r, c;
   node_t *v;
   edge_t *e;
@@ -849,6 +850,10 @@ static void cleanup2(graph_t *g, int64_t nc, bool has_vlists) {
   /* fix vlists of clusters */
   for (c = 1; has_vlists && c <= GD_n_cluster(g); c++)
     rec_reset_vlists(GD_clust(g)[c]);
+
+  /* needs exact cluster vlists, and FLATORDER edges to skip ordered fans */
+  if (untangle)
+    untangle_adjacent_chains(g);
 
   /* remove node temporary edges for ordering nodes */
   for (r = GD_minrank(g); r <= GD_maxrank(g); r++) {
@@ -1535,6 +1540,120 @@ static void place_free_long_virts(graph_t *g, int r) {
     }
   }
   LIST_FREE(&virts);
+}
+
+/* Plain interior node of an edge's virtual chain. */
+static bool chain_vnode(node_t *v) {
+  return ND_node_type(v) == VIRTUAL && ND_in(v).size == 1 &&
+         ND_out(v).size == 1 && ND_flat_in(v).size == 0 &&
+         ND_flat_out(v).size == 0;
+}
+
+static node_t *chain_next(node_t *v, int dir) {
+  return dir > 0 ? aghead(ND_out(v).list[0]) : agtail(ND_in(v).list[0]);
+}
+
+/* Orders p, q of rank r lie in the same cluster vlists. */
+static bool same_clusters(graph_t *g, int r, int p, int q) {
+  for (int c = 1; c <= GD_n_cluster(g); c++) {
+    graph_t *sg = GD_clust(g)[c];
+    if (!GD_rank(sg) || r < GD_minrank(sg) || r > GD_maxrank(sg))
+      continue;
+    const int lo = (int)(GD_rank(sg)[r].v - GD_rank(Root)[r].v);
+    const int hi = lo + GD_rank(sg)[r].n;
+    const bool in_p = lo <= p && p < hi;
+    if (in_p != (lo <= q && q < hi))
+      return false;
+    if (in_p && !same_clusters(sg, r, p, q))
+      return false;
+  }
+  return true;
+}
+
+static node_t *fan_end(edge_t *e, int dir) {
+  return dir > 0 ? aghead(e) : agtail(e);
+}
+
+static bool same_fan_port(edge_t *e, edge_t *f, int dir) {
+  const port p = dir > 0 ? ED_tail_port(e) : ED_head_port(e);
+  const port q = dir > 0 ? ED_tail_port(f) : ED_head_port(f);
+  return p.defined == q.defined && p.p.x == q.p.x && p.p.y == q.p.y;
+}
+
+/* Swap the first t vnodes of the chains of e and f if all pairs share their
+ * cluster vlists. */
+static bool swap_chain_prefix(graph_t *g, edge_t *e, edge_t *f, int dir,
+                              int t) {
+  node_t *x = fan_end(e, dir), *y = fan_end(f, dir);
+  for (int s = 0; s < t; s++, x = chain_next(x, dir), y = chain_next(y, dir))
+    if (!same_clusters(g, ND_rank(x), ND_order(x), ND_order(y)))
+      return false;
+  x = fan_end(e, dir);
+  y = fan_end(f, dir);
+  for (int s = 0; s < t; s++, x = chain_next(x, dir), y = chain_next(y, dir))
+    exchange(x, y);
+  return true;
+}
+
+typedef struct {
+  node_t *at; ///< current vnode of the chain
+  edge_t *fan; ///< chain's edge at the shared node
+} chain_t;
+
+static int chain_order_cmp(const void *a, const void *b) {
+  const int x = ND_order(((const chain_t *)a)->at);
+  const int y = ND_order(((const chain_t *)b)->at);
+  return (x > y) - (x < y);
+}
+
+/* Walk the vnode chains fanning out of v toward dir rank by rank. At the
+ * first gap where two neighbouring chains cross, swap their vnodes above it:
+ * that crossing goes away and every other segment keeps its endpoints. */
+static bool untangle_fan(graph_t *g, node_t *v, int dir) {
+  const elist l = dir > 0 ? ND_out(v) : ND_in(v);
+  if (l.size < 2)
+    return false;
+  chain_t *ch = gv_calloc(l.size, sizeof(chain_t));
+  size_t n = 0;
+  for (size_t i = 0; i < l.size; i++)
+    if (chain_vnode(fan_end(l.list[i], dir)))
+      ch[n++] = (chain_t){fan_end(l.list[i], dir), l.list[i]};
+  bool swapped = false;
+  for (int t = 1; n >= 2 && !swapped; t++) {
+    qsort(ch, n, sizeof(chain_t), chain_order_cmp);
+    for (size_t k = 0; k + 1 < n && !swapped; k++) {
+      node_t *nx = chain_next(ch[k].at, dir);
+      node_t *ny = chain_next(ch[k + 1].at, dir);
+      if (nx != ny && ND_order(nx) > ND_order(ny) &&
+          same_fan_port(ch[k].fan, ch[k + 1].fan, dir))
+        swapped = swap_chain_prefix(g, ch[k].fan, ch[k + 1].fan, dir, t);
+    }
+    size_t m = 0;
+    for (size_t k = 0; k < n; k++) {
+      node_t *x = chain_next(ch[k].at, dir);
+      if (chain_vnode(x))
+        ch[m++] = (chain_t){x, ch[k].fan};
+    }
+    n = m;
+  }
+  free(ch);
+  return swapped;
+}
+
+/* Two edges sharing a node never need to cross. Each swap removes one
+ * crossing and adds none, so this terminates. */
+static void untangle_adjacent_chains(graph_t *g) {
+  if (Concentrate)
+    return;
+  bool progress = true;
+  while (progress) {
+    progress = false;
+    for (int r = GD_minrank(g); r <= GD_maxrank(g); r++)
+      for (int i = 0; i < GD_rank(g)[r].n; i++)
+        for (int dir = -1; dir <= 1; dir += 2)
+          while (untangle_fan(g, GD_rank(g)[r].v[i], dir))
+            progress = true;
+  }
 }
 
 static void flat_reorder(graph_t *g) {

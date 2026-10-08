@@ -1,0 +1,10 @@
+digraph NewrankFillOrder {
+  /* newrank fills the cluster's empty middle ranks with dummy nodes; removing
+     them must not leave stale orders that let labels on that rank overlap. */
+  newrank=true;
+  subgraph cluster_c { top [label="cluster member spanning\nall ranks above bottom"]; bottom; }
+  a -> b [label="label a to b"];
+  r -> t [label="wide label from r to t"];
+  r -> q [label="retrigger"];
+  t -> bottom;
+}

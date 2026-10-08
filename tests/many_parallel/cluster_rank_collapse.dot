@@ -1,0 +1,33 @@
+digraph ClusterRankCollapse {
+  /* Server/worker request ping-pong across clusters. The nested state clusters
+     (tasks, scripts) have no inner edges, so each collapses onto one rank. */
+  node [shape=box];
+
+  subgraph cluster_server {
+    subgraph cluster_tasks { queued; running; done; }
+    claim; post; finish; reap;
+  }
+  subgraph cluster_worker {
+    loop; fetch; run; idle;
+    subgraph cluster_scripts { driver; harness; heartbeat; }
+  }
+
+  queued -> claim;
+  loop -> fetch -> claim;
+  claim -> running;
+  claim -> run;
+  run -> driver;
+  run -> harness;
+  run -> heartbeat;
+  driver -> post;
+  harness -> post;
+  heartbeat -> post;
+  post -> running;
+  post -> finish;
+  running -> finish;
+  finish -> done;
+  running -> reap;
+  reap -> done;
+  fetch -> idle;
+  idle -> loop [constraint=false];
+}
