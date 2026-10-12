@@ -1,0 +1,11 @@
+digraph { t [shape=plain label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+<TR><TD PORT="w0">w0</TD><TD>x</TD><TD PORT="e0">e0</TD></TR>
+<TR><TD PORT="w1">w1</TD><TD>x</TD><TD PORT="e1">e1</TD></TR>
+<TR><TD PORT="w2">w2</TD><TD>x</TD><TD PORT="e2">e2</TD></TR>
+<TR><TD PORT="w3">w3</TD><TD>x</TD><TD PORT="e3">e3</TD></TR>
+<TR><TD PORT="s0">s0</TD><TD PORT="s1">s1</TD><TD PORT="s2">s2</TD></TR></TABLE>>]; t -> a [tailport="e0:e"]; t -> b [tailport="e1:e"]; t -> c [tailport="e2:e"]; t -> d [tailport="e3:e"]; u [shape=plain label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+<TR><TD PORT="w0">w0</TD><TD>x</TD><TD PORT="e0">e0</TD></TR>
+<TR><TD PORT="w1">w1</TD><TD>x</TD><TD PORT="e1">e1</TD></TR>
+<TR><TD PORT="w2">w2</TD><TD>x</TD><TD PORT="e2">e2</TD></TR>
+<TR><TD PORT="w3">w3</TD><TD>x</TD><TD PORT="e3">e3</TD></TR>
+<TR><TD PORT="s0">s0</TD><TD PORT="s1">s1</TD><TD PORT="s2">s2</TD></TR></TABLE>>]; a -> u; u -> p [tailport="e0:e"]; u -> q [tailport="e1:e"]; u -> r [tailport="e2:e"]; }

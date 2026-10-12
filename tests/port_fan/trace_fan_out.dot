@@ -1,0 +1,111 @@
+digraph "trace-fan-out" {
+  "trace:00000000-0000-4000-8000-000000000001" ["shape"="plain", "label"=<<TABLE BORDER="0" CELLPADDING="3" CELLSPACING="0" CELLBORDER="1">
+  <TR>
+    <TD ALIGN="LEFT" COLSPAN="3"><B>agent</B> <FONT COLOR="gray" POINT-SIZE="9">model-a · 4 responses · $0.049</FONT></TD>
+  </TR>
+  <TR>
+    <TD ALIGN="RIGHT" VALIGN="TOP" ROWSPAN="1"></TD>
+    <TD ALIGN="LEFT"><B>user</B></TD>
+    <TD ALIGN="LEFT" PORT="r1_0">go</TD>
+  </TR>
+  <TR>
+    <TD ALIGN="RIGHT" VALIGN="TOP" ROWSPAN="4"><FONT COLOR="gray" POINT-SIZE="9">12k in<BR/>250 out<BR/>$0.012</FONT></TD>
+    <TD ALIGN="LEFT"><B>assistant</B></TD>
+    <TD ALIGN="LEFT" PORT="r2_0">plan</TD>
+  </TR>
+  <TR>
+    <TD ALIGN="LEFT"><B>Agent</B></TD>
+    <TD ALIGN="LEFT" PORT="r2_1">Explore: find x</TD>
+  </TR>
+  <TR>
+    <TD ALIGN="LEFT"><B>Read</B></TD>
+    <TD ALIGN="LEFT" PORT="r2_2">a.ts</TD>
+  </TR>
+  <TR>
+    <TD ALIGN="LEFT"><B>Agent</B></TD>
+    <TD ALIGN="LEFT" PORT="r2_3">general-purpose: fix y</TD>
+  </TR>
+  <TR>
+    <TD ALIGN="RIGHT" VALIGN="TOP" ROWSPAN="3"></TD>
+    <TD ALIGN="LEFT"><B>result</B></TD>
+    <TD ALIGN="LEFT" PORT="r3_0">src</TD>
+  </TR>
+  <TR>
+    <TD ALIGN="LEFT"><B>result</B></TD>
+    <TD ALIGN="LEFT" PORT="r3_1">done</TD>
+  </TR>
+  <TR>
+    <TD ALIGN="LEFT"><B>result</B></TD>
+    <TD ALIGN="LEFT" PORT="r3_2">done</TD>
+  </TR>
+  <TR>
+    <TD ALIGN="RIGHT" VALIGN="TOP" ROWSPAN="3"><FONT COLOR="gray" POINT-SIZE="9">12k in<BR/>250 out<BR/>$0.012</FONT></TD>
+    <TD ALIGN="LEFT"><B>Bash</B></TD>
+    <TD ALIGN="LEFT" PORT="r4_0">ls</TD>
+  </TR>
+  <TR>
+    <TD ALIGN="LEFT"><B>Agent</B></TD>
+    <TD ALIGN="LEFT" PORT="r4_1">Explore: find z</TD>
+  </TR>
+  <TR>
+    <TD ALIGN="LEFT"><B>Agent</B></TD>
+    <TD ALIGN="LEFT" PORT="r4_2">Explore: find w</TD>
+  </TR>
+  <TR>
+    <TD ALIGN="RIGHT" VALIGN="TOP" ROWSPAN="3"></TD>
+    <TD ALIGN="LEFT"><B>result</B></TD>
+    <TD ALIGN="LEFT" PORT="r5_0">ok</TD>
+  </TR>
+  <TR>
+    <TD ALIGN="LEFT"><B>result</B></TD>
+    <TD ALIGN="LEFT" PORT="r5_1">done</TD>
+  </TR>
+  <TR>
+    <TD ALIGN="LEFT"><B>result</B></TD>
+    <TD ALIGN="LEFT" PORT="r5_2">done</TD>
+  </TR>
+  <TR>
+    <TD ALIGN="RIGHT" VALIGN="TOP" ROWSPAN="2"><FONT COLOR="gray" POINT-SIZE="9">12k in<BR/>250 out<BR/>$0.012</FONT></TD>
+    <TD ALIGN="LEFT"><B>assistant</B></TD>
+    <TD ALIGN="LEFT" PORT="r6_0">one more</TD>
+  </TR>
+  <TR>
+    <TD ALIGN="LEFT"><B>Agent</B></TD>
+    <TD ALIGN="LEFT" PORT="r6_1">general-purpose: review</TD>
+  </TR>
+  <TR>
+    <TD ALIGN="RIGHT" VALIGN="TOP" ROWSPAN="1"></TD>
+    <TD ALIGN="LEFT"><B>result</B></TD>
+    <TD ALIGN="LEFT" PORT="r7_0">done</TD>
+  </TR>
+  <TR>
+    <TD ALIGN="RIGHT" VALIGN="TOP" ROWSPAN="1"><FONT COLOR="gray" POINT-SIZE="9">12k in<BR/>250 out<BR/>$0.012</FONT></TD>
+    <TD ALIGN="LEFT"><B>assistant</B></TD>
+    <TD ALIGN="LEFT" PORT="r8_0">all done</TD>
+  </TR>
+</TABLE>>, "id"="trace:00000000-0000-4000-8000-000000000001"];
+  "trace:00000000-0000-4000-8000-000000000001/a1" ["shape"="box", "style"="dashed,rounded", "label"=<<B>subagent</B>>, "id"="trace:00000000-0000-4000-8000-000000000001/a1"];
+  "trace:00000000-0000-4000-8000-000000000001/a2" ["shape"="box", "style"="dashed,rounded", "label"=<<B>subagent</B>>, "id"="trace:00000000-0000-4000-8000-000000000001/a2"];
+  "trace:00000000-0000-4000-8000-000000000001/a3" ["shape"="box", "style"="dashed,rounded", "label"=<<B>subagent</B>>, "id"="trace:00000000-0000-4000-8000-000000000001/a3"];
+  "trace:00000000-0000-4000-8000-000000000001/a4" ["shape"="box", "style"="dashed,rounded", "label"=<<B>subagent</B>>, "id"="trace:00000000-0000-4000-8000-000000000001/a4"];
+  "trace:00000000-0000-4000-8000-000000000001/a5" ["shape"="box", "style"="dashed,rounded", "label"=<<B>subagent</B>>, "id"="trace:00000000-0000-4000-8000-000000000001/a5"];
+  "trace:00000000-0000-4000-8000-000000000001/b1" ["shape"="box", "style"="dashed,rounded", "label"=<<B>subagent</B>>, "id"="trace:00000000-0000-4000-8000-000000000001/b1"];
+  "trace:00000000-0000-4000-8000-000000000001/c1" ["shape"="box", "style"="dashed,rounded", "label"=<<B>subagent</B>>, "id"="trace:00000000-0000-4000-8000-000000000001/c1"];
+  "trace:00000000-0000-4000-8000-000000000001/c2" ["shape"="box", "style"="dashed,rounded", "label"=<<B>subagent</B>>, "id"="trace:00000000-0000-4000-8000-000000000001/c2"];
+  "trace:00000000-0000-4000-8000-000000000001/c3" ["shape"="box", "style"="dashed,rounded", "label"=<<B>subagent</B>>, "id"="trace:00000000-0000-4000-8000-000000000001/c3"];
+  "trace:00000000-0000-4000-8000-000000000001/d1" ["shape"="box", "style"="dashed,rounded", "label"=<<B>subagent</B>>, "id"="trace:00000000-0000-4000-8000-000000000001/d1"];
+  "p" ["id"="p"];
+  "p" -> "trace:00000000-0000-4000-8000-000000000001" ["id"="p->trace:00000000-0000-4000-8000-000000000001"];
+  "trace:00000000-0000-4000-8000-000000000001" -> "trace:00000000-0000-4000-8000-000000000001/a1" ["tailport"="r2_1:e", "id"="trace:00000000-0000-4000-8000-000000000001->trace:00000000-0000-4000-8000-000000000001/a1"];
+  "trace:00000000-0000-4000-8000-000000000001" -> "trace:00000000-0000-4000-8000-000000000001/a2" ["tailport"="r2_3:e", "id"="trace:00000000-0000-4000-8000-000000000001->trace:00000000-0000-4000-8000-000000000001/a2"];
+  "trace:00000000-0000-4000-8000-000000000001" -> "trace:00000000-0000-4000-8000-000000000001/a3" ["tailport"="r4_1:e", "id"="trace:00000000-0000-4000-8000-000000000001->trace:00000000-0000-4000-8000-000000000001/a3"];
+  "trace:00000000-0000-4000-8000-000000000001" -> "trace:00000000-0000-4000-8000-000000000001/a4" ["tailport"="r4_2:e", "id"="trace:00000000-0000-4000-8000-000000000001->trace:00000000-0000-4000-8000-000000000001/a4"];
+  "trace:00000000-0000-4000-8000-000000000001" -> "trace:00000000-0000-4000-8000-000000000001/a5" ["tailport"="r6_1:e", "id"="trace:00000000-0000-4000-8000-000000000001->trace:00000000-0000-4000-8000-000000000001/a5"];
+  "trace:00000000-0000-4000-8000-000000000001/a1" -> "trace:00000000-0000-4000-8000-000000000001/b1" ["id"="trace:00000000-0000-4000-8000-000000000001/a1->trace:00000000-0000-4000-8000-000000000001/b1"];
+  "trace:00000000-0000-4000-8000-000000000001/a2" -> "trace:00000000-0000-4000-8000-000000000001/c1" ["id"="trace:00000000-0000-4000-8000-000000000001/a2->trace:00000000-0000-4000-8000-000000000001/c1"];
+  "trace:00000000-0000-4000-8000-000000000001/a2" -> "trace:00000000-0000-4000-8000-000000000001/c2" ["id"="trace:00000000-0000-4000-8000-000000000001/a2->trace:00000000-0000-4000-8000-000000000001/c2"];
+  "trace:00000000-0000-4000-8000-000000000001/a2" -> "trace:00000000-0000-4000-8000-000000000001/c3" ["id"="trace:00000000-0000-4000-8000-000000000001/a2->trace:00000000-0000-4000-8000-000000000001/c3"];
+  "trace:00000000-0000-4000-8000-000000000001/c1" -> "trace:00000000-0000-4000-8000-000000000001/d1" ["id"="trace:00000000-0000-4000-8000-000000000001/c1->trace:00000000-0000-4000-8000-000000000001/d1"];
+  "rankdir"="TB";
+  "id"="trace-fan-out";
+}

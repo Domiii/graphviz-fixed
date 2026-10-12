@@ -37,7 +37,8 @@ typedef LIST(Agnode_t *) node_queue_t;
     extern void dot_layout(Agraph_t * g);
     extern void dot_init_node_edge(graph_t * g);
     extern void dot_scan_ranks(graph_t * g);
-    extern void enqueue_neighbors(node_queue_t *q, node_t *n0, int pass);
+    extern void enqueue_neighbors(node_queue_t *q, node_t *n0, int pass,
+                                  bool flip);
     /// @return 0 on success
     extern int expand_cluster(Agraph_t *);
     extern Agedge_t *fast_edge(Agedge_t *);
@@ -84,6 +85,7 @@ typedef LIST(Agnode_t *) node_queue_t;
     extern void dot_sameports(Agraph_t *);
     /// @return 0 on success
     extern int dot_splines(Agraph_t *);
+    extern bool dot_ports_wrap(Agraph_t *);
 
 #ifdef __cplusplus
 }

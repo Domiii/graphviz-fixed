@@ -1,0 +1,19 @@
+digraph flat_label_top_ports {
+  // labeled, non-adjacent flat edge on the top rank (dot adds rank -1) plus a
+  // lateral port fan that claims nest room (dot_nest_room shifts ranks)
+  { rank=same; a; x; t; }
+  a -> x;
+  x -> t;
+  a -> t [label="flat label"];
+  t [shape=plain label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+    <TR><TD>x</TD><TD PORT="r0">r0</TD></TR>
+    <TR><TD>x</TD><TD PORT="r1">r1</TD></TR>
+    <TR><TD>x</TD><TD PORT="r2">r2</TD></TR>
+    <TR><TD>x</TD><TD PORT="r3">r3</TD></TR>
+  </TABLE>>];
+  t -> s0 [tailport="r0:e"];
+  t -> s1 [tailport="r1:e"];
+  t -> s2 [tailport="r2:e"];
+  t -> s3 [tailport="r3:e"];
+  z0 -> s0; z0 -> s1; z0 -> s2; z0 -> s3;
+}

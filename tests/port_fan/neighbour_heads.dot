@@ -1,0 +1,24 @@
+digraph neighbour_squeeze {
+  // trace table with :e Agent ports and a same-rank neighbour right of it:
+  // the lateral corridor between t and n is nodesep wide for 5 edges
+  t [shape=plain label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3">
+    <TR><TD COLSPAN="2"><B>agent</B></TD></TR>
+    <TR><TD>Agent</TD><TD PORT="r0">Explore: a</TD></TR>
+    <TR><TD>Read</TD><TD PORT="r1">a.ts</TD></TR>
+    <TR><TD>Agent</TD><TD PORT="r2">Explore: b</TD></TR>
+    <TR><TD>Agent</TD><TD PORT="r3">general: c</TD></TR>
+    <TR><TD>Bash</TD><TD PORT="r4">ls</TD></TR>
+    <TR><TD>Agent</TD><TD PORT="r5">Explore: d</TD></TR>
+    <TR><TD>Agent</TD><TD PORT="r6">Explore: e</TD></TR>
+    <TR><TD>result</TD><TD PORT="r7">done</TD></TR>
+  </TABLE>>];
+  p -> t;
+  p -> n1; n1 -> a0; n1 -> a2; n1 -> a6;
+
+  t -> a0 [tailport="r0:e"];
+  t -> a2 [tailport="r2:e"];
+  t -> a3 [tailport="r3:e"];
+  t -> a5 [tailport="r5:e"];
+  t -> a6 [tailport="r6:e"];
+
+}

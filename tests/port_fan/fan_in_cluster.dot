@@ -1,0 +1,21 @@
+digraph fan_in_cluster {
+  // trace_fan_out-like :e fan with table and stubs inside one cluster
+  subgraph cluster_trace {
+    t [shape=plain label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3">
+      <TR><TD>assistant</TD><TD PORT="m0">plan</TD></TR>
+      <TR><TD>Agent</TD><TD PORT="r0">Explore: a</TD></TR>
+      <TR><TD>Agent</TD><TD PORT="r1">Explore: b</TD></TR>
+      <TR><TD>Read</TD><TD PORT="m1">a.ts</TD></TR>
+      <TR><TD>Agent</TD><TD PORT="r2">general: c</TD></TR>
+      <TR><TD>Agent</TD><TD PORT="r3">Explore: d</TD></TR>
+      <TR><TD>Agent</TD><TD PORT="r4">Explore: e</TD></TR>
+    </TABLE>>];
+    a0; a1; a2; a3; a4;
+  }
+  p -> t;
+  t -> a0 [tailport="r0:e"];
+  t -> a1 [tailport="r1:e"];
+  t -> a2 [tailport="r2:e"];
+  t -> a3 [tailport="r3:e"];
+  t -> a4 [tailport="r4:e"];
+}
