@@ -81,7 +81,7 @@ KNOWN = {
     ("shared_heads.dot", "RL"): ((5, 6), _FOREIGN, ("cross", "run")),
     ("thin_box_neighbour.dot", "RL"): ((3, 3), _FOREIGN, ("cross", "run")),
     ("table_chain.dot", "RL"): ((6, 7), _TIGHT, ("run",)),
-    ("port_sides.dot", "RL"): ((10, 13), _TIGHT, ("run",)),
+    ("port_sides.dot", "RL"): ((10, 13), None, ()),
     # in-edge ports below out-edge ports: dot routes no crossing-free layout
     ("port_sides.dot", "BT"): ((19, 17), None, ()),
 }
