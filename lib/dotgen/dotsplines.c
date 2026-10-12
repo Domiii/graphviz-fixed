@@ -44,6 +44,23 @@
 #define MAINGRAPH 64
 #define AUXGRAPH 128
 #define GRAPHTYPEMASK 192 /* the OR of the above */
+#define NEST_SHIFT 8 /* routing order (nest_key) above the flags */
+#define NEST_BIAS (1 << 20)
+
+/* nesting siblings (nest_end, bound_side) */
+#define NEST_SAMPLES 16 /* points per Bézier of a routed sibling */
+#define NEST_SIMPLIFY 0.5 /* pt: a routed sibling's polyline within its spline */
+#define NEST_SLIVER 0.5 /* pt: thinnest slice */
+#define NEST_CONTACT 0.5 /* pt: boxes this close touch */
+#define NEST_OPEN 0.1   /* pt: a sibling exactly the clearance away is clear */
+#define NEST_MIN_BOX 1  /* pt: least width / height of a corridor box */
+#define NEST_OVERLAP 1  /* pt: least overlap of consecutive boxes */
+#define NEST_MERGE 1    /* pt: slices whose cuts differ less merge */
+#define NEST_END_ON_EDGE 1 /* pt: a path end this close lies on a box edge */
+#define NEST_INSET 2    /* pt: a corridor's inside short of its bound */
+#define NEST_FACE_LEAD (MINW / 2.0) /* face corridor back past its port */
+#define FAR_FACE_SHARE 0.5 /* of the gap beyond a far face, as in beginpath */
+#define MAX_SLICES 8    /* per box cut along a sibling */
 
 static void makefwdedge(edge_t *new, edge_t *old) {
   Agedgeinfo_t *const info =
@@ -67,6 +84,7 @@ typedef struct {
   double Splinesep;
   double Multisep;
   boxf *Rank_box;
+  size_t boxcap; ///< capacity of the path's boxes
 } spline_info_t;
 
 typedef LIST(pointf) points_t;
@@ -95,6 +113,7 @@ static void setflags(Agedge_t *, int, int, int);
 static int straight_len(Agnode_t *);
 static Agedge_t *straight_path(Agedge_t *, int, points_t *);
 static Agedge_t *top_bound(Agedge_t *, int);
+static int nest_key(edge_t *);
 
 static edge_t *getmainedge(edge_t *e) {
   edge_t *le = e;
@@ -279,9 +298,11 @@ static int dot_splines_(graph_t *g, int normalize) {
   for (i = GD_minrank(g); i <= GD_maxrank(g); i++) {
     n_nodes += GD_rank(g)[i].n;
     if ((n = GD_rank(g)[i].v[0]))
-      sd.LeftBound = MIN(sd.LeftBound, ND_coord(n).x - ND_lw(n));
+      sd.LeftBound = MIN(sd.LeftBound, ND_coord(n).x - ND_lw(n) -
+                                           dot_lateral_room(n, LEFT, false));
     if (GD_rank(g)[i].n && (n = GD_rank(g)[i].v[GD_rank(g)[i].n - 1]))
-      sd.RightBound = MAX(sd.RightBound, ND_coord(n).x + ND_rw(n));
+      sd.RightBound = MAX(sd.RightBound, ND_coord(n).x + ND_rw(n) +
+                                             dot_lateral_room(n, RIGHT, false));
     sd.LeftBound -= MINW;
     sd.RightBound += MINW;
 
@@ -332,10 +353,20 @@ static int dot_splines_(graph_t *g, int normalize) {
    * alternatively, the edges would be routed identically if
    * routed separately.
    */
+  for (size_t k = 0; k < LIST_SIZE(&edges); k++) {
+    e = LIST_GET(&edges, k);
+    if ((ED_tree_index(e) & EDGETYPEMASK) == REGULAREDGE) {
+      edge_t *const le = getmainedge(e);
+      ED_tree_index(e) |=
+          (nest_key(ED_to_virt(le) ? ED_to_virt(le) : le) + NEST_BIAS)
+          << NEST_SHIFT;
+    }
+  }
   LIST_SORT(&edges, edgecmp);
 
   /* FIXME: just how many boxes can there be? */
-  P.boxes = gv_calloc(n_nodes + 20 * 2 * NSUB, sizeof(boxf));
+  sd.boxcap = n_nodes + 20 * 2 * NSUB;
+  P.boxes = gv_calloc(sd.boxcap, sizeof(boxf));
   sd.Rank_box = gv_calloc(i, sizeof(boxf));
 
   if (et == EDGETYPE_LINE) {
@@ -531,6 +562,7 @@ static void setflags(edge_t *e, int hint1, int hint2, int f3) {
 
 /* lexicographically order edges by
  *  - edge type
+ *  - routing order among nested siblings (nest_key)
  *  - |rank difference of nodes|
  *  - |x difference of nodes|
  *  - id of witness edge for equivalence class
@@ -561,6 +593,14 @@ static int edgecmp(const void *p0, const void *p1) {
 
   edge_t *le0 = getmainedge(e0);
   edge_t *le1 = getmainedge(e1);
+
+  { // nested siblings (nest_key)
+    const int d0 = ED_tree_index(e0) >> NEST_SHIFT;
+    const int d1 = ED_tree_index(e1) >> NEST_SHIFT;
+    if (d0 != d1) {
+      return d0 < d1 ? -1 : 1;
+    }
+  }
 
   {
     const int rank_diff0 = ND_rank(agtail(le0)) - ND_rank(aghead(le0));
@@ -1704,10 +1744,686 @@ static int makeLineEdge(graph_t *g, edge_t *fe, points_t *points, node_t **hp) {
   return pn;
 }
 
+/* Edge ends along a node's perimeter.
+ * In the internal (TB) frame an end leaves n toward the adjacent rank: below
+ * (dir > 0, a tail) or above (dir < 0, a head). begin/endpath route an end
+ * on a lateral side (LEFT/RIGHT) along that side; an end on the far face (a
+ * tail's TOP, a head's BOTTOM) first wraps that face, then a side. Ends that
+ * pass one side toward one rank nest: the one nearer the corner where they
+ * leave n runs inside. */
+
+/* fast edge f's end on the adjacent rank */
+static node_t *far_end(edge_t *f, int dir) {
+  return dir > 0 ? aghead(f) : agtail(f);
+}
+
+/* port of fast edge f at its end n */
+static port end_port(edge_t *f, node_t *n, int dir) {
+  port q = dir > 0 ? ED_tail_port(f) : ED_head_port(f);
+  if (q.dyna)
+    q = resolvePort(n, far_end(f, dir), &q);
+  return q;
+}
+
+/* x of n's side */
+static double side_x(node_t *n, int side) {
+  return side == RIGHT ? ND_coord(n).x + ND_rw(n) : ND_coord(n).x - ND_lw(n);
+}
+
+typedef struct {
+  int side;   ///< LEFT or RIGHT it passes; 0 if it leaves through the near face
+  bool face;  ///< wraps the far face first
+  double key; ///< perimeter distance from the corner where it leaves n
+  pointf p;   ///< port point
+} run_t;
+
+/* The run of port q at n. A far-face end wraps the side farface_left picks,
+ * as begin/endpath do and mincross assumes (port_pos). */
+static run_t run_of(node_t *n, port q, int dir) {
+  run_t r = {0};
+  // begin/endpath test TOP, BOTTOM, LEFT, then RIGHT
+  const int first = q.side & TOP      ? TOP
+                    : q.side & BOTTOM ? BOTTOM
+                    : q.side & LEFT   ? LEFT
+                    : q.side & RIGHT  ? RIGHT
+                                      : 0;
+  if (!first || first == (dir > 0 ? BOTTOM : TOP))
+    return r;
+  r.p = add_pointf(ND_coord(n), q.p);
+  if (first == LEFT || first == RIGHT) {
+    r.side = first;
+    r.key = dir * (r.p.y - (ND_coord(n).y - dir * ND_ht(n) / 2));
+  } else {
+    r.face = true;
+    r.side = farface_left(n, q.p, dir > 0) ? LEFT : RIGHT;
+    r.key = ND_ht(n) + fabs(side_x(n, r.side) - r.p.x);
+  }
+  return r;
+}
+
+/* > 0 if run b toward far end v nests inside run a toward u on their side:
+ * nearer the corner, or, at one point, its far end farther back across */
+static double nests(run_t a, node_t *u, run_t b, node_t *v) {
+  if (a.key != b.key)
+    return a.key - b.key;
+  return (a.side == RIGHT ? 1 : -1) * (ND_order(u) - ND_order(v));
+}
+
+/* run r's far end v lies back across its side: it turns around n's corner */
+static bool turns(node_t *n, run_t r, node_t *v) {
+  return (r.side == RIGHT ? 1 : -1) * (ND_coord(v).x - side_x(n, r.side)) < 0;
+}
+
+/* fast-graph edges leaving n downward (dir > 0) or arriving from above; during
+ * dot_position these are saved aside for the aux graph */
+static elist fan_list(node_t *n, int dir, bool saved) {
+  return saved ? (dir > 0 ? ND_save_out(n) : ND_save_in(n))
+               : (dir > 0 ? ND_out(n) : ND_in(n));
+}
+
+/* count siblings nested inside run a of n toward far end u */
+static int run_inner(node_t *n, run_t a, node_t *u, int dir) {
+  if (!a.side)
+    return 0;
+  const elist l = fan_list(n, dir, false);
+  int inner = 0;
+  for (size_t i = 0; i < l.size; i++) {
+    node_t *const v = far_end(l.list[i], dir);
+    const run_t b = run_of(n, end_port(l.list[i], n, dir), dir);
+    if (b.side == a.side && nests(a, u, b, v) > 0)
+      inner++;
+  }
+  return inner;
+}
+
+/* Routing order key of fast edge e among its nested siblings, at the real end
+ * where it nests deepest. Siblings that turn around the node's corner route
+ * outer first: the inner ones then pass inside them. The others route inner
+ * first: the outer ones then turn beyond them. Lower keys route first. */
+static int nest_key(edge_t *e) {
+  if (ND_node_type(agtail(e)) != NORMAL)
+    return 0;
+  node_t *t = agtail(e), *u = aghead(e);
+  run_t r = run_of(t, end_port(e, t, 1), 1);
+  int d = run_inner(t, r, u, 1);
+  bool turn = r.side && turns(t, r, u);
+  while (ND_node_type(aghead(e)) == VIRTUAL && ND_out(aghead(e)).size == 1)
+    e = ND_out(aghead(e)).list[0];
+  node_t *h = aghead(e);
+  if (ND_node_type(h) == NORMAL) {
+    const run_t q = run_of(h, end_port(e, h, -1), -1);
+    const int dh = run_inner(h, q, agtail(e), -1);
+    if (dh > d)
+      d = dh, turn = turns(h, q, agtail(e));
+  }
+  return turn ? -d : d;
+}
+
+typedef struct {
+  int all;  ///< passing the side
+  int turn; ///< of those, turning around the near corner
+  int face; ///< of those, wrapping the far face
+} run_count_t;
+
+/* Count n's runs on side toward each rank: [0] below, [1] above. Without
+ * coords (positioning), dyna ports are skipped: they resolve later. */
+static void run_count(node_t *n, int side, bool saved, bool coords,
+                      run_count_t cnt[2]) {
+  for (int k = 0; k < 2; k++) {
+    const int dir = k == 0 ? 1 : -1;
+    const elist l = fan_list(n, dir, saved);
+    cnt[k] = (run_count_t){0};
+    for (size_t i = 0; i < l.size; i++) {
+      edge_t *const f = l.list[i];
+      node_t *const v = far_end(f, dir);
+      port q = dir > 0 ? ED_tail_port(f) : ED_head_port(f);
+      if (q.dyna) {
+        if (!coords)
+          continue;
+        q = resolvePort(n, v, &q);
+      }
+      const run_t r = run_of(n, q, dir);
+      if (r.side != side)
+        continue;
+      const int w = MAX(ED_count(f), 1);
+      cnt[k].all += w;
+      if (coords && turns(n, r, v))
+        cnt[k].turn += w;
+      cnt[k].face += r.face * w;
+    }
+  }
+}
+
 /* begin/endpath route ends along the node perimeter: splines, polylines */
 bool dot_ports_wrap(graph_t *g) {
   const int et = EDGE_TYPE(dot_root(g));
   return et == EDGETYPE_SPLINE || et == EDGETYPE_PLINE;
+}
+
+/* least separation of nested siblings */
+double dot_nest_sep(node_t *n) { return GD_nodesep(dot_root(n)) / 2.0; }
+
+/* Width that side of n reserves beside it for nested siblings: one
+ * dot_nest_sep per sibling beyond the first, toward the busier rank. saved:
+ * lists as during dot_position. */
+double dot_lateral_room(node_t *n, int side, bool saved) {
+  if (ND_node_type(n) != NORMAL || !ND_has_port(n) ||
+      !dot_ports_wrap(agraphof(n)))
+    return 0;
+  run_count_t c[2];
+  run_count(n, side, saved, false, c);
+  const int k = MAX(c[0].all, c[1].all);
+  return k > 1 ? (k - 1) * dot_nest_sep(n) : 0;
+}
+
+/* Siblings of n, during dot_position after x positioning, that turn around a
+ * corner of n (turn) or wrap its far face (face), on its busier side, toward
+ * the rank [0] below, [1] above. */
+void dot_nest_runs(node_t *n, int turn[2], int face[2]) {
+  turn[0] = turn[1] = face[0] = face[1] = 0;
+  if (ND_node_type(n) != NORMAL || !ND_has_port(n))
+    return;
+  for (int k = 0; k < 2; k++) {
+    run_count_t c[2];
+    run_count(n, k ? RIGHT : LEFT, true, true, c);
+    for (int d = 0; d < 2; d++)
+      turn[d] = MAX(turn[d], c[d].turn), face[d] = MAX(face[d], c[d].face);
+  }
+}
+
+/* the end of e's original edge at n has a compass port */
+static bool compass_end(edge_t *e, node_t *n) {
+  edge_t *o = e;
+  while (ED_to_orig(o) && ED_edge_type(o) != NORMAL)
+    o = ED_to_orig(o);
+  const port q = agtail(o) == n ? ED_tail_port(o) : ED_head_port(o);
+  return q.defined && !q.dyna;
+}
+
+/* e's end, as shaped by nest_end */
+typedef struct {
+  int side;       ///< LEFT or RIGHT; 0 if e does not nest
+  double limit;   ///< corridor limit beyond the node, or NAN
+  pointf gap;     ///< clearance to the neighbouring siblings
+  edge_t *nbr[2]; ///< nearest routed sibling outside / inside e, or NULL
+  bool turned;    ///< the path turns back at this end (a far-face stub)
+} nest_t;
+
+static const splines *routed(edge_t *f) {
+  const splines *spl = NULL;
+  for (edge_t *le = f; le && !(spl = ED_spl(le)) && ED_edge_type(le) != NORMAL;
+       le = ED_to_orig(le))
+    ;
+  return spl;
+}
+
+/* Shape e's end corridor (endp, from begin/endpath) along its run at n. dir
+ * > 0: e leaves n downward toward other; dir < 0: arrives from other above.
+ * room: gap between n and the adjacent rank; far_room: the gap beyond the far
+ * face, or NAN.
+ * - Beside n it reaches out no farther than other needs.
+ * - Siblings nest (run_inner); routing order nest_key. e reserves room for
+ *   its inner siblings: one separation each beside n, one each beyond n for
+ *   those turning around its corner, one each over the far face for those
+ *   wrapping it. A stub joins the port to that corridor. e keeps clear of its
+ *   nearest routed outer and inner siblings (bound_by), if their far ends nest
+ *   the same way.
+ * - Squeezed beside a neighbour, a compass end keeps to its own separation.
+ * A path may turn back at one end only (routesplines): without may_turn, e
+ * does not rise over inner siblings on the far face. */
+static nest_t nest_end(const spline_info_t *sp, node_t *n, port p, int dir,
+                       node_t *other, double room, double far_room,
+                       bool may_turn, bool compass, pathend_t *endp) {
+  const run_t a = run_of(n, p, dir);
+  if (!a.side || endp->boxn != (a.face ? 2 : 1))
+    return (nest_t){.limit = NAN};
+  nest_t rv = {.side = a.side, .limit = NAN};
+  const int side = a.side;
+  const int s = side == RIGHT ? 1 : -1;
+  boxf b = endp->boxes[a.face ? 1 : 0]; // beside n
+  double *const outer = side == RIGHT ? &b.UR.x : &b.LL.x;
+  double *const inside = side == RIGHT ? &b.LL.x : &b.UR.x;
+  const double bound = *outer, in0 = *inside;
+  const double need = ND_coord(other).x + s * (side == RIGHT ? ND_rw(other)
+                                                             : ND_lw(other));
+  run_count_t cnt[2];
+  run_count(n, side, false, true, cnt);
+  const run_count_t all = cnt[dir > 0 ? 0 : 1];
+  const elist l = fan_list(n, dir, false);
+  int inner = 0, inner_turn = 0, inner_face = 0;
+  double next = 0, next_x = 0; // distance to the nearest inner side / face port
+  double near[2][2] = {{0}};   // nearest outer / inner: run distance, order
+  for (size_t i = 0; i < l.size; i++) {
+    edge_t *const f = l.list[i];
+    node_t *const v = far_end(f, dir);
+    const run_t c = run_of(n, end_port(f, n, dir), dir);
+    if (c.side != side)
+      continue;
+    const double nd = nests(a, other, c, v);
+    if (nd > 0) {
+      const int w = MAX(ED_count(f), 1);
+      inner += w, inner_turn += turns(n, c, v) * w, inner_face += c.face * w;
+      const double d = a.key - c.key;
+      double *const nearest = c.face ? &next_x : &next;
+      if (d > 0 && (*nearest == 0 || d < *nearest))
+        *nearest = d;
+    }
+    // a neighbour bounds e only where its far end nests the same way
+    const int k = nd < 0 ? 0 : 1;
+    const double far = s * (ND_order(v) - ND_order(other));
+    const double key[2] = {fabs(a.key - c.key), fabs(far)};
+    if (nd != 0 && far != 0 && (nd < 0) == (far > 0) && routed(f) &&
+        (!rv.nbr[k] || key[0] < near[k][0] ||
+         (key[0] == near[k][0] && key[1] < near[k][1])))
+      near[k][0] = key[0], near[k][1] = key[1], rv.nbr[k] = f;
+  }
+  // beside a neighbour, only n's own reserve (dot_lateral_room)
+  double wide = s * (bound - in0);
+  const bool squeezed =
+      s * bound <
+      s * (side == RIGHT ? sp->RightBound : sp->LeftBound) - NEST_CONTACT;
+  if (squeezed)
+    wide = fmin(wide, dot_nest_sep(n) + dot_lateral_room(n, side, false));
+  boxf f0 = endp->boxes[0]; // over the far face, if a.face
+  if (a.face) {
+    if (!isnan(far_room)) { // the face's share of the gap beyond it
+      if (dir > 0)
+        f0.UR.y = f0.LL.y + FAR_FACE_SHARE * far_room;
+      else
+        f0.LL.y = f0.UR.y - FAR_FACE_SHARE * far_room;
+    }
+    // over the face only from the port on toward its corner: the rest of the
+    // face is the opposite fan's
+    if (side == RIGHT)
+      f0.LL.x = fmax(f0.LL.x, a.p.x - NEST_FACE_LEAD);
+    else
+      f0.UR.x = fmin(f0.UR.x, a.p.x + NEST_FACE_LEAD);
+  }
+  const double face_room = a.face ? f0.UR.y - f0.LL.y : 0;
+  const pointf sep = {fmin(sp->Multisep, wide / MAX(all.all, 1)),
+                      fmin(sp->Multisep, room / (all.turn + 1))};
+  const double sep_f = fmin(sp->Multisep, face_room / (all.face + 1));
+  rv.gap = (pointf){sep.x / 2, fmin(sep.y, a.face ? sep_f : sep.y) / 2};
+  if (a.face && all.face > inner_face + 1) {
+    // over the far face e stays below its outer siblings' separations
+    const double top = (inner_face + 1) * sep_f - sep_f / 2;
+    if (dir > 0)
+      f0.UR.y = fmin(f0.UR.y, f0.LL.y + top);
+    else
+      f0.LL.y = fmax(f0.LL.y, f0.UR.y - top);
+  }
+  if (a.face)
+    endp->boxes[0] = f0;
+  const double lane = squeezed && compass && all.all > 1 ? sep.x : INFINITY;
+  if (inner > 0)
+    *inside = s * fmax(s * in0, fmin(s * in0 + inner * sep.x,
+                                     s * bound - NEST_INSET));
+  *outer = s * fmin(s * bound, fmin(fmax(s * *inside + MINW, s * need),
+                                    s * *inside + lane));
+  if (inner == 0) {
+    endp->boxes[a.face ? 1 : 0] = b;
+    return rv;
+  }
+  const double edge = ND_coord(n).y - dir * ND_ht(n) / 2; // near face
+  const double off_y = inner_turn * sep.y;
+  if (dir > 0)
+    b.LL.y = edge - off_y;
+  else
+    b.UR.y = edge + off_y;
+  if (inner_turn > 0)
+    rv.limit = dir > 0 ? b.LL.y : b.UR.y;
+  if (!a.face) {
+    // stub from the port to the corridor, clear of the inner siblings
+    boxf stub = b;
+    const double h = fmin(next > 0 ? next / 2 : rv.gap.y,
+                          dir * (a.p.y - edge) + off_y - NEST_MIN_BOX);
+    const double y = a.p.y - dir * h;
+    if (dir > 0)
+      stub.LL.y = y, stub.UR.y = a.p.y, b.UR.y = y;
+    else
+      stub.UR.y = y, stub.LL.y = a.p.y, b.LL.y = y;
+    if (side == RIGHT)
+      stub.LL.x = in0, stub.UR.x = b.UR.x;
+    else
+      stub.UR.x = in0, stub.LL.x = b.LL.x;
+    endp->boxes[0] = stub;
+    endp->boxes[1] = b;
+    endp->boxn = 2;
+    return rv;
+  }
+  // over the far face: rise above the inner siblings wrapping it, from a stub
+  // that stops short of the nearest inner port on the face
+  const double off_f = may_turn ? inner_face * sep_f : 0;
+  boxf over = f0, stub = f0;
+  const double fy = dir > 0 ? f0.LL.y : f0.UR.y; // the face
+  if (dir > 0)
+    over.LL.y = fy + off_f, stub.UR.y = over.LL.y, b.UR.y = over.LL.y;
+  else
+    over.UR.y = fy - off_f, stub.LL.y = over.UR.y, b.LL.y = over.UR.y;
+  const double stop = next_x > 0 ? a.p.x + s * next_x / 2 : side_x(n, side);
+  if (side == RIGHT)
+    stub.UR.x = stop;
+  else
+    stub.LL.x = stop;
+  if (off_f > 0) {
+    endp->boxes[0] = stub;
+    endp->boxes[1] = over;
+    endp->boxes[2] = b;
+    endp->boxn = 3;
+    rv.turned = true;
+  } else
+    endp->boxes[1] = b;
+  return rv;
+}
+
+/* The x interval within [lo, hi], clear of polyline q's stretch within
+ * [y0, y1] by gap (and spread more to its right), that best meets [ref0, ref1]
+ * (contains it, for a point); false if none. */
+static bool clear_interval(const pointf *q, size_t qn, double y0, double y1,
+                           double gap, double spread, double lo, double hi,
+                           double ref0, double ref1, double *out0,
+                           double *out1) {
+  double *const iv = gv_calloc(2 * qn + 2, sizeof(double));
+  size_t ni = 0;
+  for (size_t i = 0; i + 1 < qn; i++) {
+    pointf a = q[i], c = q[i + 1];
+    if (fmax(a.y, c.y) < y0 || fmin(a.y, c.y) > y1)
+      continue;
+    // clip the segment to the slab
+    for (int k = 0; k < 2; k++) {
+      pointf *const v = k ? &c : &a;
+      const pointf w = k ? a : c;
+      const double y = fmin(fmax(v->y, y0), y1);
+      if (y != v->y && w.y != v->y)
+        v->x += (w.x - v->x) * (y - v->y) / (w.y - v->y), v->y = y;
+    }
+    iv[ni++] = fmin(a.x, c.x) - gap;
+    iv[ni++] = fmax(a.x, c.x) + spread + gap;
+  }
+  // sort the occupied intervals by start (insertion: few)
+  for (size_t i = 2; i < ni; i += 2)
+    for (size_t j = i; j >= 2 && iv[j] < iv[j - 2]; j -= 2) {
+      const double t0 = iv[j], t1 = iv[j + 1];
+      iv[j] = iv[j - 2], iv[j + 1] = iv[j - 1];
+      iv[j - 2] = t0, iv[j - 1] = t1;
+    }
+  const bool at_point = ref0 == ref1;
+  bool found = false;
+  double best = -INFINITY, at = lo;
+  for (size_t i = 0; i <= ni; i += 2) {
+    const double end = i < ni ? fmin(iv[i], hi) : hi; // free [at, end]
+    if (end - at >= NEST_MIN_BOX) {
+      const double meet = at_point ? (at <= ref0 && ref0 <= end ? 1 : -INFINITY)
+                                : fmin(end, ref1) - fmax(at, ref0);
+      if (meet > best && (at_point ? meet > 0 : meet >= 0))
+        best = meet, *out0 = at, *out1 = end, found = true;
+    }
+    if (i < ni)
+      at = fmax(at, iv[i + 1]);
+  }
+  free(iv);
+  return found;
+}
+
+/* Douglas-Peucker: keep[i] marks the points of q[lo..hi] that stay within
+ * tol of the simplified polyline */
+static void simplify(const pointf *q, size_t lo, size_t hi, double tol,
+                     bool *keep) {
+  if (hi <= lo + 1)
+    return;
+  const pointf a = q[lo], b = q[hi];
+  const double dx = b.x - a.x, dy = b.y - a.y, len = hypot(dx, dy);
+  size_t far = lo;
+  double fd = 0;
+  for (size_t i = lo + 1; i < hi; i++) {
+    const double d = len > 0 ? fabs(dy * (q[i].x - a.x) - dx * (q[i].y - a.y)) / len
+                             : hypot(q[i].x - a.x, q[i].y - a.y);
+    if (d > fd)
+      fd = d, far = i;
+  }
+  if (fd <= tol)
+    return;
+  keep[far] = true;
+  simplify(q, lo, far, tol, keep);
+  simplify(q, far, hi, tol, keep);
+}
+
+/* f's routed spline as a polyline, kept only where it bends */
+static points_t routed_polyline(edge_t *f) {
+  const splines *spl = routed(f);
+  points_t q = {0};
+  for (size_t i = 0; i < spl->size; i++)
+    for (size_t j = 0; j + 3 < spl->list[i].size; j += 3)
+      for (int k = 0; k <= NEST_SAMPLES; k++)
+        LIST_APPEND(&q, Bezier(&spl->list[i].list[j], k / (double)NEST_SAMPLES,
+                               NULL, NULL));
+  const size_t m = LIST_SIZE(&q);
+  if (m < 2)
+    return q;
+  bool *const keep = gv_calloc(m, sizeof(bool));
+  keep[0] = keep[m - 1] = true;
+  LIST_SYNC(&q);
+  simplify(LIST_FRONT(&q), 0, m - 1, NEST_SIMPLIFY, keep);
+  size_t k = 0;
+  for (size_t i = 0; i < m; i++)
+    if (keep[i])
+      *LIST_AT(&q, k++) = LIST_GET(&q, i);
+  while (LIST_SIZE(&q) > k)
+    (void)LIST_POP_BACK(&q);
+  free(keep);
+  LIST_SYNC(&q);
+  return q;
+}
+
+/* A sibling polyline q and its clearance, for bound_side */
+typedef struct {
+  const pointf *q;
+  size_t qn;
+  pointf gap;
+  double spread; ///< multi-edge copies right of the routed one
+} sibling_t;
+
+/* The path ends at e on b's bottom (at < 0) or top edge and leaves b beyond
+ * that edge, turning back inside it: keep the clear part of b beside e, short
+ * of the sibling beyond it. */
+static bool clear_turn(sibling_t sb, boxf b, pointf e, int at, boxf *out) {
+  boxf c = b;
+  if (!clear_interval(sb.q, sb.qn, e.y - sb.gap.y, e.y + sb.gap.y, sb.gap.x,
+                      sb.spread, b.LL.x, b.UR.x, e.x, e.x, &c.LL.x, &c.UR.x))
+    return false;
+  for (size_t k = 0; k + 1 < sb.qn; k++) {
+    pointf a = sb.q[k], d = sb.q[k + 1];
+    if (a.x > d.x) {
+      const pointf t = a;
+      a = d, d = t;
+    }
+    if (d.x < c.LL.x || a.x > c.UR.x)
+      continue;
+    for (int j = 0; j < 2; j++) { // clip to the column
+      const double x = j ? fmin(d.x, c.UR.x) : fmax(a.x, c.LL.x);
+      const double y = d.x == a.x ? (j ? d.y : a.y)
+                                  : a.y + (d.y - a.y) * (x - a.x) / (d.x - a.x);
+      if (at < 0 && y > e.y)
+        c.UR.y = fmin(c.UR.y, y - sb.gap.y);
+      if (at > 0 && y < e.y)
+        c.LL.y = fmax(c.LL.y, y + sb.gap.y);
+    }
+  }
+  *out = c;
+  return at < 0 ? c.UR.y >= e.y + NEST_MIN_BOX : c.LL.y <= e.y - NEST_MIN_BOX;
+}
+
+static int cmp_desc(const void *a, const void *b) {
+  const double x = *(const double *)a, y = *(const double *)b;
+  return (x < y) - (x > y);
+}
+
+/* Slice b where the sibling bends, in the order the path runs (up: from b's
+ * bottom), each narrowed to the clear stretch that meets prev (the box or
+ * slice before; NULL: the path starts at start). Merge alike slices, keeping
+ * the narrower cut, while they still meet prev and next. Slices go to sl;
+ * returns their count, 0 if the corridor closes. */
+static size_t slice_box(sibling_t sb, boxf b, bool up, const boxf *prev,
+                        const boxf *next, pointf start, const pointf *end,
+                        double *ys, boxf *sl) {
+  size_t nc = 0;
+  ys[nc++] = b.UR.y;
+  ys[nc++] = b.LL.y;
+  for (size_t k = 0; k < sb.qn; k++)
+    for (int d = -1; d <= 1; d += 2) {
+      const double y = sb.q[k].y + d * sb.gap.y;
+      if (b.LL.y < y && y < b.UR.y)
+        ys[nc++] = y;
+    }
+  qsort(ys, nc, sizeof(double), cmp_desc);
+  size_t m = 1; // drop slivers; keep both ends
+  for (size_t k = 1; k < nc; k++)
+    if (ys[m - 1] - ys[k] >= NEST_SLIVER)
+      ys[m++] = ys[k];
+  if (m == 1)
+    m++; // b itself is a sliver
+  ys[m - 1] = b.LL.y;
+  if (up)
+    for (size_t k = 0; k < m / 2; k++) {
+      const double t = ys[k];
+      ys[k] = ys[m - 1 - k];
+      ys[m - 1 - k] = t;
+    }
+  size_t ns = 0;
+  for (size_t k = 0; k + 1 < m; k++) {
+    boxf c = b;
+    c.UR.y = fmax(ys[k], ys[k + 1]);
+    c.LL.y = fmin(ys[k], ys[k + 1]);
+    const boxf *const p = ns ? &sl[ns - 1] : prev;
+    // (open window: a sibling exactly gap.y away leaves the slice free)
+    if (!clear_interval(sb.q, sb.qn, c.LL.y - sb.gap.y + NEST_OPEN,
+                        c.UR.y + sb.gap.y - NEST_OPEN, sb.gap.x, sb.spread,
+                        b.LL.x, b.UR.x, p ? p->LL.x : start.x,
+                        p ? p->UR.x : start.x, &c.LL.x, &c.UR.x))
+      return 0;
+    sl[ns++] = c;
+  }
+  if (end && !(sl[ns - 1].LL.x <= end->x && end->x <= sl[ns - 1].UR.x))
+    return 0;
+  while (ns > 1) {
+    size_t best = 0;
+    double bd = INFINITY;
+    for (size_t k = 0; k + 1 < ns; k++) {
+      const double lo = fmax(sl[k].LL.x, sl[k + 1].LL.x);
+      const double hi = fmin(sl[k].UR.x, sl[k + 1].UR.x);
+      const boxf *const pre = k > 0 ? &sl[k - 1] : prev;
+      const boxf *const post = k + 2 < ns ? &sl[k + 2] : next;
+      if ((pre && fmax(lo, pre->LL.x) + NEST_OVERLAP > fmin(hi, pre->UR.x)) ||
+          (post && fmax(lo, post->LL.x) + NEST_OVERLAP > fmin(hi, post->UR.x)) ||
+          (k == 0 && !prev && !(lo <= start.x && start.x <= hi)) ||
+          (k + 2 == ns && end && !(lo <= end->x && end->x <= hi)))
+        continue;
+      const double d = fabs(sl[k].LL.x - sl[k + 1].LL.x) +
+                       fabs(sl[k].UR.x - sl[k + 1].UR.x);
+      if (d < bd)
+        bd = d, best = k;
+    }
+    if (isinf(bd) || (bd >= fmax(sb.gap.x, NEST_MERGE) && ns <= MAX_SLICES))
+      break;
+    sl[best].LL.y = fmin(sl[best].LL.y, sl[best + 1].LL.y);
+    sl[best].UR.y = fmax(sl[best].UR.y, sl[best + 1].UR.y);
+    sl[best].LL.x = fmax(sl[best].LL.x, sl[best + 1].LL.x);
+    sl[best].UR.x = fmin(sl[best].UR.x, sl[best + 1].UR.x);
+    memmove(&sl[best + 1], &sl[best + 2], (ns - best - 2) * sizeof(boxf));
+    ns--;
+  }
+  return ns;
+}
+
+/* Keep the boxes of P within [y0, y1] clear of routed sibling f's spline by
+ * gap: slice them where the spline bends and narrow each slice to the clear
+ * stretch that continues the path. If that closes the corridor, keep it
+ * open. */
+static void bound_side(path *P, const spline_info_t *sp, edge_t *f,
+                       pointf gap, double y0, double y1) {
+  points_t q = routed_polyline(f);
+  if (LIST_SIZE(&q) < 2) {
+    LIST_FREE(&q);
+    return;
+  }
+  const sibling_t sb = {LIST_FRONT(&q), LIST_SIZE(&q), gap,
+                        (MAX(ED_count(f), 1) - 1) * sp->Multisep};
+  const size_t n = P->nbox;
+  boxf *const old = gv_calloc(n, sizeof(boxf));
+  memcpy(old, P->boxes, n * sizeof(boxf));
+  double *const ys = gv_calloc(2 * sb.qn + 2, sizeof(double));
+  boxf *const sl = gv_calloc(2 * sb.qn + 2, sizeof(boxf));
+  bool open = true;
+  P->nbox = 0;
+  for (size_t i = 0; i < n && open; i++) {
+    const boxf b = old[i];
+    const boxf *const prev = P->nbox ? &P->boxes[P->nbox - 1] : NULL;
+    const boxf *const next = i + 1 < n ? &old[i + 1] : NULL;
+    if (b.LL.y < y0 - NEST_CONTACT || b.UR.y > y1 + NEST_CONTACT ||
+        // the path turns back inside b, between two boxes on one side of it
+        (i > 0 && next && (old[i - 1].LL.y > b.LL.y) == (next->LL.y > b.LL.y))) {
+      P->boxes[P->nbox++] = b;
+      continue;
+    }
+    // ... or between its end on one edge of b and a box beyond that edge
+    const pointf *const end = i == 0 ? &P->start.p : !next ? &P->end.p : NULL;
+    const boxf *const beyond = i == 0 ? next : !next && i > 0 ? &old[i - 1] : NULL;
+    const int at = !end || !beyond              ? 0
+                   : end->y <= b.LL.y + NEST_END_ON_EDGE ? -1
+                   : end->y >= b.UR.y - NEST_END_ON_EDGE ? 1
+                                                  : 0;
+    if (at && (at < 0 ? beyond->UR.y <= b.LL.y + NEST_CONTACT
+                      : beyond->LL.y >= b.UR.y - NEST_CONTACT)) {
+      open = clear_turn(sb, b, *end, at, &P->boxes[P->nbox++]);
+      continue;
+    }
+    // the path runs up through b if it comes from below or goes on above
+    const bool up = (i > 0 && old[i - 1].UR.y <= b.LL.y + NEST_CONTACT) ||
+                    (next && next->LL.y >= b.UR.y - NEST_CONTACT);
+    const size_t ns = slice_box(sb, b, up, prev, next, P->start.p,
+                                next ? NULL : &P->end.p, ys, sl);
+    open = ns > 0 && P->nbox + ns + (n - i) < sp->boxcap;
+    for (size_t k = 0; k < ns && open; k++)
+      P->boxes[P->nbox++] = sl[k];
+  }
+  // consecutive boxes must still meet
+  for (size_t i = 0; open && i + 1 < P->nbox; i++)
+    open = fmax(P->boxes[i].LL.x, P->boxes[i + 1].LL.x) <=
+           fmin(P->boxes[i].UR.x, P->boxes[i + 1].UR.x);
+  if (!open) {
+    memcpy(P->boxes, old, n * sizeof(boxf));
+    P->nbox = n;
+  }
+  free(sl);
+  free(ys);
+  free(old);
+  LIST_FREE(&q);
+}
+
+/* Keep e's end boxes of P within [y0, y1] clear of its routed neighbours. */
+static void bound_by(path *P, const spline_info_t *sp, nest_t nest, double y0,
+                     double y1) {
+  for (int k = 0; k < 2; k++)
+    if (nest.nbr[k])
+      bound_side(P, sp, nest.nbr[k], nest.gap, y0, y1);
+}
+
+/* gap between n's far face and the rank beyond it (dir > 0: above n), or NAN */
+static double far_gap(graph_t *g, node_t *n, int dir) {
+  const int r = ND_rank(n) - dir;
+  if (r < GD_minrank(g) || r > GD_maxrank(g) || GD_rank(g)[r].n == 0)
+    return NAN;
+  const double y = ND_coord(GD_rank(g)[r].v[0]).y;
+  return dir > 0 ? y - GD_rank(g)[r].ht1 - (ND_coord(n).y + ND_ht(n) / 2)
+                 : ND_coord(n).y - ND_ht(n) / 2 - (y + GD_rank(g)[r].ht2);
+}
+
+/* rank box b, its top lowered to *floor_y once if that is set */
+static boxf below(boxf b, double *floor_y) {
+  if (!isnan(*floor_y))
+    b.UR.y = fmin(b.UR.y, *floor_y);
+  *floor_y = NAN;
+  return b;
 }
 
 static void make_regular_edge(graph_t *g, spline_info_t *sp, path *P,
@@ -1776,6 +2492,16 @@ static void make_regular_edge(graph_t *g, spline_info_t *sp, path *P,
     hn = aghead(e);
     b = tend.nb = maximal_bbox(g, *sp, tn, NULL, e);
     beginpath(P, e, REGULAREDGE, &tend, spline_merge(tn));
+    nest_t tnest = {.limit = NAN}; // e's end at tn
+    const bool nest = dot_ports_wrap(g);
+    if (nest && ND_node_type(tn) == NORMAL)
+      tnest = nest_end(sp, tn, ED_tail_port(e), 1, hn,
+                           ND_coord(tn).y - ND_ht(tn) / 2 -
+                               rank_box(sp, g, ND_rank(tn)).LL.y,
+                           far_gap(g, tn, 1), true, compass_end(e, tn),
+                           &tend);
+    double floor_y = tnest.limit; // top of the first rank box
+    const double tail_y0 = rank_box(sp, g, ND_rank(tn)).LL.y;
     b.UR.y = tend.boxes[tend.boxn - 1].UR.y;
     b.LL.y = tend.boxes[tend.boxn - 1].LL.y;
     b = makeregularend(b, BOTTOM, ND_coord(tn).y - GD_rank(g)[ND_rank(tn)].ht1);
@@ -1784,7 +2510,7 @@ static void make_regular_edge(graph_t *g, spline_info_t *sp, path *P,
     bool smode = false;
     bool si = false;
     while (ND_node_type(hn) == VIRTUAL && !sinfo.splineMerge(hn)) {
-      LIST_APPEND(&boxes, rank_box(sp, g, ND_rank(tn)));
+      LIST_APPEND(&boxes, below(rank_box(sp, g, ND_rank(tn)), &floor_y));
       if (!smode && ((sl = straight_len(hn)) >=
                      ((GD_has_labels(g->root) & EDGE_LABEL) ? 4 + 1 : 2 + 1))) {
         smode = true;
@@ -1807,6 +2533,8 @@ static void make_regular_edge(graph_t *g, spline_info_t *sp, path *P,
         hend.boxes[hend.boxn++] = b;
       P->end.theta = M_PI / 2, P->end.constrained = true;
       completeregularpath(P, segfirst, e, &tend, &hend, &boxes);
+      bound_by(P, sp, tnest, tail_y0, INFINITY);
+      tnest.nbr[0] = tnest.nbr[1] = NULL;
       pointf *ps = NULL;
       size_t pn = 0;
       if (is_spline)
@@ -1846,16 +2574,29 @@ static void make_regular_edge(graph_t *g, spline_info_t *sp, path *P,
       P->start.theta = -M_PI / 2, P->start.constrained = true;
       smode = false;
     }
-    LIST_APPEND(&boxes, rank_box(sp, g, ND_rank(tn)));
+    LIST_APPEND(&boxes, below(rank_box(sp, g, ND_rank(tn)), &floor_y));
     b = hend.nb = maximal_bbox(g, *sp, hn, e, NULL);
-    endpath(P, hackflag ? &fwdedgeb.out : e, REGULAREDGE, &hend,
-            spline_merge(aghead(e)));
+    edge_t *const he = hackflag ? &fwdedgeb.out : e;
+    endpath(P, he, REGULAREDGE, &hend, spline_merge(aghead(e)));
+    nest_t hnest = {.limit = NAN}; // e's end at hn
+    boxf *const rb = LIST_AT(&boxes, LIST_SIZE(&boxes) - 1);
+    const double head_y1 = rb->UR.y;
+    if (nest && ND_node_type(hn) == NORMAL) {
+      hnest = nest_end(sp, hn, ED_head_port(he), -1, tn,
+                           rb->UR.y - ND_coord(hn).y - ND_ht(hn) / 2,
+                           far_gap(g, hn, -1), !tnest.turned,
+                           compass_end(he, hn), &hend);
+      if (!isnan(hnest.limit))
+        rb->LL.y = fmax(rb->LL.y, hnest.limit);
+    }
     b.UR.y = hend.boxes[hend.boxn - 1].UR.y;
     b.LL.y = hend.boxes[hend.boxn - 1].LL.y;
     b = makeregularend(b, TOP, ND_coord(hn).y + GD_rank(g)[ND_rank(hn)].ht2);
     if (b.LL.x < b.UR.x && b.LL.y < b.UR.y)
       hend.boxes[hend.boxn++] = b;
     completeregularpath(P, segfirst, e, &tend, &hend, &boxes);
+    bound_by(P, sp, tnest, tail_y0, INFINITY);
+    bound_by(P, sp, hnest, -INFINITY, head_y1);
     LIST_FREE(&boxes);
     pointf *ps = NULL;
     size_t pn = 0;

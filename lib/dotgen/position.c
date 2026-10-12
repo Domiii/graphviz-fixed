@@ -118,6 +118,63 @@ connectGraph (graph_t* g)
     }
 }
 
+/* After x positioning: siblings that turn around a node's corner toward the
+ * adjacent rank, or wrap its far face, nest dot_nest_sep apart there, clear of
+ * that rank (a far face gets half the gap, as in begin/endpath). Widen the rank
+ * gaps where a nest needs more than they have; ranks above move up. */
+static void nest_room(graph_t *g) {
+    if (GD_exact_ranksep(g) || !dot_ports_wrap(g))
+	return;
+    rank_t *const rank = GD_rank(g);
+    const int lo = GD_minrank(g), hi = GD_maxrank(g);
+    const size_t nr = (size_t)(hi - lo + 1);
+    // room claimed below / above rank r, at [r - lo]
+    double *const below = gv_calloc(nr, sizeof(double));
+    double *const above = gv_calloc(nr, sizeof(double));
+    bool any = false;
+    for (int r = lo; r <= hi; r++)
+	for (int i = 0; i < rank[r].n; i++) {
+	    node_t *const n = rank[r].v[i];
+	    int turn[2], face[2]; // toward [0] below, [1] above
+	    dot_nest_runs(n, turn, face);
+	    if (!turn[0] && !turn[1] && !face[0] && !face[1])
+		continue;
+	    const double gap_dn = r < hi && rank[r + 1].n > 0
+		? ND_coord(n).y - ND_ht(n) / 2 -
+		      (ND_coord(rank[r + 1].v[0]).y + rank[r + 1].ht2)
+		: INFINITY;
+	    const double gap_up = r > lo && rank[r - 1].n > 0
+		? ND_coord(rank[r - 1].v[0]).y - rank[r - 1].ht1 -
+		      (ND_coord(n).y + ND_ht(n) / 2)
+		: INFINITY;
+	    const double sep = dot_nest_sep(n);
+	    double *const dn = &below[r - lo], *const up = &above[r - lo];
+	    // tails turn below and wrap above; heads the other way round
+	    if (turn[0] > 1)
+		*dn = fmax(*dn, (turn[0] + 1) * sep - gap_dn);
+	    if (turn[1] > 1)
+		*up = fmax(*up, (turn[1] + 1) * sep - gap_up);
+	    if (face[0] > 1)
+		*up = fmax(*up, 2 * (face[0] + 1) * sep - gap_up);
+	    if (face[1] > 1)
+		*dn = fmax(*dn, 2 * (face[1] + 1) * sep - gap_dn);
+	    any |= *dn > 0 || *up > 0;
+	}
+    if (any) {
+	// rank r moves up by the room claimed at and below it
+	double shift = 0;
+	for (int r = hi; r >= lo; r--) {
+	    if (r < hi)
+		shift += above[r + 1 - lo];
+	    shift += below[r - lo];
+	    for (int i = 0; i < rank[r].n; i++) // GD_nlist holds aux nodes here
+		ND_coord(rank[r].v[i]).y += shift;
+	}
+    }
+    free(above);
+    free(below);
+}
+
 int dot_position(graph_t *g) {
     if (GD_nlist(g) == NULL)
 	return 0; // ignore empty graph
@@ -145,6 +202,7 @@ int dot_position(graph_t *g) {
 	(void)rank_result;
     }
     set_xcoords(g);
+    nest_room(g);
     set_aspect(g);
     remove_aux_edges(g);	/* must come after set_aspect since we now
 				 * use GD_ln and GD_rn for bbox width.
@@ -265,7 +323,8 @@ static WUR int make_LR_constraints(graph_t *g) {
 	    }
 	    v = rank[i].v[j + 1];
 	    if (v) {
-		width = ND_rw(u) + ND_lw(v) + nodesep;
+		width = ND_rw(u) + ND_lw(v) + nodesep +
+		        dot_lateral_room(u, RIGHT, true) + dot_lateral_room(v, LEFT, true);
 		e0 = make_aux_edge(u, v, width, 0);
 		if (e0 == NULL) {
 		    return -1;
