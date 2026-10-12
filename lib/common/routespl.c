@@ -338,6 +338,29 @@ static pointf *routesplines_(path *pp, size_t *npoints, int polyline) {
   } else
     flip = false;
 
+  /* a path that goes up - left - down is built mirrored: past its peak, it
+   * comes down left of where it went up */
+  bool mirror = false;
+  for (size_t bi = 1; bi + 1 < boxn; bi++)
+    if (boxes[bi].LL.y > boxes[bi - 1].LL.y &&
+        boxes[bi + 1].LL.y <= boxes[bi].LL.y) {
+      const boxf down = boxes[bi + 1];
+      size_t up = bi - 1; // the way up at the level the way down starts
+      for (size_t k = bi; k-- > 0;)
+        if (boxes[k].LL.y < down.UR.y && down.LL.y < boxes[k].UR.y) {
+          up = k;
+          break;
+        }
+      mirror = down.LL.x + down.UR.x < boxes[up].LL.x + boxes[up].UR.x;
+      break;
+    }
+  if (mirror)
+    for (size_t bi = 0; bi < boxn; bi++) {
+      const double v = boxes[bi].UR.x;
+      boxes[bi].UR.x = -boxes[bi].LL.x;
+      boxes[bi].LL.x = -v;
+    }
+
   size_t pi;
   if (agtail(realedge) != aghead(realedge)) {
     /* I assume that the path goes either down only or
@@ -425,6 +448,15 @@ static pointf *routesplines_(path *pp, size_t *npoints, int polyline) {
     return NULL;
   }
 
+  if (mirror) {
+    for (size_t bi = 0; bi < boxn; bi++) {
+      const double v = boxes[bi].UR.x;
+      boxes[bi].UR.x = -boxes[bi].LL.x;
+      boxes[bi].LL.x = -v;
+    }
+    for (size_t i = 0; i < pi; i++)
+      polypoints[i].x *= -1;
+  }
   if (flip) {
     for (size_t bi = 0; bi < boxn; bi++) {
       double v = boxes[bi].UR.y;

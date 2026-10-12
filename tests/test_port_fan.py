@@ -176,46 +176,14 @@ def sibling_pairs(graph: dict) -> list:
     ]
 
 
-# ordering alone leaves these failing: (fixture, rankdir) -> checks
-NEEDS_NESTING = {
-    ("trace_fan_out.dot", "TB"): ('cross', 'run'),
-    ("trace_fan_out.dot", "BT"): ('cross', 'run'),
-    ("trace_fan_out.dot", "RL"): ('cross', 'run'),
-    ("agent_rows_24.dot", "TB"): ('cross', 'run'),
-    ("agent_rows_24.dot", "BT"): ('cross', 'run'),
-    ("agent_rows_24.dot", "RL"): ('cross', 'run'),
-    ("port_sides.dot", "LR"): ('cross', 'run'),
-    ("port_sides.dot", "RL"): ('cross',),
-    ("interior_ports.dot", "RL"): ('cross', 'run'),
-    ("same_rank_neighbour.dot", "TB"): ('cross', 'run'),
-    ("same_rank_neighbour.dot", "BT"): ('cross', 'run'),
-    ("same_rank_neighbour.dot", "RL"): ('cross', 'run'),
-    ("neighbour_heads.dot", "RL"): ('cross',),
-    ("shared_heads.dot", "TB"): ('cross', 'run'),
-    ("shared_heads.dot", "BT"): ('cross', 'run'),
-    ("thin_box_neighbour.dot", "TB"): ('cross', 'run'),
-    ("table_chain.dot", "RL"): ('cross',),
-    ("fan_in_cluster.dot", "TB"): ('cross', 'run'),
-    ("fan_in_cluster.dot", "BT"): ('cross', 'run'),
-    ("fan_in_cluster.dot", "RL"): ('cross', 'run'),
-    ("table_chain.dot", "TB"): ('run',),
-    ("neighbour_heads.dot", "TB"): ('known',),
-    ("neighbour_heads.dot", "BT"): ('known',),
-}
-_NESTING = "needs routing nesting (next commit)"
-
-
 def cases(table, check: str | None = None) -> list:
-    """(fixture, rankdir) params; xfail where KNOWN or NEEDS_NESTING says check
-    still fails"""
+    """(fixture, rankdir) params; xfail where KNOWN says check still fails"""
     out = []
     for f, rs in table.items() if isinstance(table, dict) else table:
         for r in rs if isinstance(table, dict) else (rs,):
             known = KNOWN.get((f, r))
             marks = ()
-            if check in NEEDS_NESTING.get((f, r), ()):
-                marks = pytest.mark.xfail(strict=True, reason=_NESTING)
-            elif known and check in known[2]:
+            if known and check in known[2]:
                 marks = pytest.mark.xfail(strict=True, reason=known[1])
             out.append(pytest.param(f, r, id=f"{f}-{r}", marks=marks))
     return out

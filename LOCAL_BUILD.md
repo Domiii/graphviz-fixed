@@ -10,11 +10,6 @@
   export LD_LIBRARY_PATH="$GRAPHVIZ_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
   ```
 * Stock Graphviz only when the user explicitly wants default: `/usr/bin/dot`.
-* Configure / rebuild / install:
-  ```
-  cd $GRAPHVIZ_FIXED
-  cmake -DCMAKE_INSTALL_PREFIX=$PWD/dist -B build -S .
-  cmake --build build -j16
-  cmake --install build
-  LD_LIBRARY_PATH=$GRAPHVIZ_PREFIX/lib $GRAPHVIZ_PREFIX/bin/dot -c
-  ```
+* Configure / rebuild / install: `dev/build.sh` (`JOBS`, default 4).
+* Test: `dev/test.sh <test file or node id> [pytest args]`: targeted, serial, against `dist`; never the full suite.
+* Comparisons and regression checks are pytest cases, not ad-hoc scripts.

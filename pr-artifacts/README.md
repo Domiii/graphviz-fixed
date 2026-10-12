@@ -4,3 +4,4 @@ before = system `/usr/bin/dot` (unfixed). after = local fixed build (`GRAPHVIZ_P
 - `complex-weave/`: render from `tests/complex_weave/*.dot` and `_notes_/complex-weave/sample2.dot` (see PR notes)
 - `label-detour/`: render from `tests/label_detour/*.dot`; before = local `dist` build at HEAD (bug absent in system 2.43)
 - `many-parallel/`: render from `tests/many_parallel/*.dot`; before = local `dist` build at HEAD (`tasks_and_containers_coarse.before` = sample without `newrank`, `.newrank-only` = with `newrank` at HEAD; `cluster_rank_collapse.after` adds `newrank=true`)
+- `port-fan/`: `BEFORE_PREFIX=<dist built at 847d58473> dev/render_port_fan.sh` (all `tests/port_fan/*.dot`; bug also in system 2.43)
