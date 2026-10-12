@@ -2545,7 +2545,7 @@ static int poly_path(node_t * n, port * p, int side, boxf rv[], int *kptr)
   return 0;
 }
 
-static unsigned char invflip_side(unsigned char side, int rankdir) {
+static unsigned char invflip_one(unsigned char side, int rankdir) {
     switch (rankdir) {
     case RANKDIR_TB:
 	break;
@@ -2601,6 +2601,15 @@ static unsigned char invflip_side(unsigned char side, int rankdir) {
 	UNREACHABLE();
     }
     return side;
+}
+
+/* each of the sides a port lies on (a corner: two) */
+static unsigned char invflip_side(unsigned char side, int rankdir) {
+    unsigned char rv = 0;
+    for (unsigned char b = BOTTOM; b <= LEFT; b <<= 1)
+	if (side & b)
+	    rv |= invflip_one(b, rankdir);
+    return rv;
 }
 
 static double invflip_angle(double angle, int rankdir)
