@@ -1,0 +1,36 @@
+digraph "trace-two-spawns" {
+  "trace:00000000-0000-4000-8000-000000000001" ["shape"="plain", "label"=<<TABLE BORDER="0" CELLPADDING="3" CELLSPACING="0" CELLBORDER="1">
+  <TR>
+    <TD ALIGN="LEFT" COLSPAN="3"><B>agent</B> <FONT COLOR="gray" POINT-SIZE="9">model-a · 1 response · $0.012</FONT></TD>
+  </TR>
+  <TR>
+    <TD ALIGN="RIGHT" VALIGN="TOP" ROWSPAN="1"></TD>
+    <TD ALIGN="LEFT"><B>user</B></TD>
+    <TD ALIGN="LEFT" PORT="r1_0">go</TD>
+  </TR>
+  <TR>
+    <TD ALIGN="RIGHT" VALIGN="TOP" ROWSPAN="2"><FONT COLOR="gray" POINT-SIZE="9">12k in<BR/>250 out<BR/>$0.012</FONT></TD>
+    <TD ALIGN="LEFT"><B>Agent</B></TD>
+    <TD ALIGN="LEFT" PORT="r2_0">Explore: find x</TD>
+  </TR>
+  <TR>
+    <TD ALIGN="LEFT"><B>Agent</B></TD>
+    <TD ALIGN="LEFT" PORT="r2_1">Explore: find x</TD>
+  </TR>
+  <TR>
+    <TD ALIGN="RIGHT" VALIGN="TOP" ROWSPAN="1"></TD>
+    <TD ALIGN="LEFT"><B>result</B></TD>
+    <TD ALIGN="LEFT" PORT="r3_0">done</TD>
+  </TR>
+</TABLE>>, "id"="trace:00000000-0000-4000-8000-000000000001"];
+  "trace:00000000-0000-4000-8000-000000000001/a1" ["shape"="box", "style"="dashed,rounded", "label"=<<B>Explore</B><BR/>find x>, "id"="trace:00000000-0000-4000-8000-000000000001/a1"];
+  "trace:00000000-0000-4000-8000-000000000001/a2" ["shape"="box", "style"="dashed,rounded", "label"=<<B>subagent</B>>, "id"="trace:00000000-0000-4000-8000-000000000001/a2"];
+  "trace:00000000-0000-4000-8000-000000000001/b1" ["shape"="box", "style"="dashed,rounded", "label"=<<B>subagent</B>>, "id"="trace:00000000-0000-4000-8000-000000000001/b1"];
+  "p" ["id"="p"];
+  "p" -> "trace:00000000-0000-4000-8000-000000000001" ["id"="p->trace:00000000-0000-4000-8000-000000000001"];
+  "trace:00000000-0000-4000-8000-000000000001" -> "trace:00000000-0000-4000-8000-000000000001/a1" ["tailport"="r2_0:e", "id"="trace:00000000-0000-4000-8000-000000000001->trace:00000000-0000-4000-8000-000000000001/a1"];
+  "trace:00000000-0000-4000-8000-000000000001" -> "trace:00000000-0000-4000-8000-000000000001/a2" ["tailport"="r2_1:e", "id"="trace:00000000-0000-4000-8000-000000000001->trace:00000000-0000-4000-8000-000000000001/a2"];
+  "trace:00000000-0000-4000-8000-000000000001/a1" -> "trace:00000000-0000-4000-8000-000000000001/b1" ["id"="trace:00000000-0000-4000-8000-000000000001/a1->trace:00000000-0000-4000-8000-000000000001/b1"];
+  "rankdir"="TB";
+  "id"="trace-two-spawns";
+}

@@ -1,0 +1,22 @@
+digraph port_sides {
+  // clockwise from the top left: in-edge ports form one arc, out-edge ports the
+  // other, so no two edges need to cross
+  t [shape=plain label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD PORT="w1">w1</TD><TD PORT="n1">n1</TD><TD PORT="n2">n2</TD><TD PORT="e1">e1</TD></TR>
+    <TR><TD PORT="w2">w2</TD><TD COLSPAN="2" ROWSPAN="3">table</TD><TD PORT="e2">e2</TD></TR>
+    <TR><TD PORT="w3">w3</TD><TD PORT="e3">e3</TD></TR>
+    <TR><TD PORT="w4">w4</TD><TD PORT="e4">e4</TD></TR>
+    <TR><TD PORT="s1">s1</TD><TD PORT="s2">s2</TD><TD PORT="s3">s3</TD><TD PORT="s4">s4</TD></TR>
+  </TABLE>>];
+  i1 -> t [headport="e1:e"];
+  i2 -> t [headport="e2:e"];
+  i3 -> t [headport="n1:n"];
+  i4 -> t [headport="w2:w"];
+  i5 -> t [headport="w1:w"];
+  t -> o1 [tailport="e3:e"];
+  t -> o2 [tailport="e4:e"];
+  t -> o3 [tailport="s2:s"];
+  t -> o4 [tailport="w4:w"];
+  t -> o5 [tailport="w3:w"];
+  t -> o6 [tailport="s4:se"];
+}

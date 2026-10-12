@@ -1704,6 +1704,12 @@ static int makeLineEdge(graph_t *g, edge_t *fe, points_t *points, node_t **hp) {
   return pn;
 }
 
+/* begin/endpath route ends along the node perimeter: splines, polylines */
+bool dot_ports_wrap(graph_t *g) {
+  const int et = EDGE_TYPE(dot_root(g));
+  return et == EDGETYPE_SPLINE || et == EDGETYPE_PLINE;
+}
+
 static void make_regular_edge(graph_t *g, spline_info_t *sp, path *P,
                               edge_t **edges, unsigned cnt, int et) {
   node_t *tn, *hn;

@@ -23,6 +23,7 @@
 #include <dotgen/dot.h>
 #include <inttypes.h>
 #include <limits.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -35,6 +36,12 @@
 #include <util/list.h>
 #include <util/streq.h>
 #include <util/unused.h>
+
+/* Splines and polylines leave a port along n's perimeter (begin/endpath);
+ * other edge types leave it straight. */
+static bool PortsAlongPerimeter;
+/* weight of a port's own perimeter order among ports leaving at one point */
+#define PORT_TIEBREAK 1e-9
 
 struct adjmatrix_t {
   size_t nrows;  ///< how many rows have been allocated?
@@ -336,6 +343,7 @@ int dot_mincross(graph_t *g) {
   char *s;
 
   int rc = 0;
+  PortsAlongPerimeter = dot_ports_wrap(g);
 
   /* check whether malformed input has led to empty cluster that the crossing
    * functions will not anticipate
@@ -589,6 +597,42 @@ static bool left2right(graph_t *g, node_t *v, node_t *w) {
   return matrix_get(M, (size_t)flatindex(v), (size_t)flatindex(w));
 }
 
+/* angle of point at around n's center, in [0, 1), increasing left to right
+ * as seen from the rank below (dir > 0: counterclockwise from north) or
+ * above (dir < 0: clockwise from south) */
+static double perimeter_pos(node_t *n, pointf at, int dir) {
+  const double phi = atan2(at.y, at.x);
+  const double a = dir > 0 ? phi + 1.5 * M_PI : -0.5 * M_PI - phi;
+  const double pos = fmod(a + 4 * M_PI, 2 * M_PI) / (2 * M_PI);
+  if (pos > 0)
+    return pos;
+  // on the far pole: the side begin/endpath wrap
+  return farface_left(n, at, dir > 0) ? 0 : nextafter(1, 0);
+}
+
+/* Where an edge attaches along n's perimeter, in [0, 1), increasing left to
+ * right as seen from the rank the edge leads to (dir > 0: below, < 0: above).
+ * A compass port on a side of n lies on the boundary. Any other port leaves n
+ * through the side facing that rank; compass ports inside n that leave at one
+ * point there keep their own perimeter order. */
+static double port_pos(node_t *n, port p, int dir) {
+  if (!PortsAlongPerimeter)
+    return p.p.x;
+  if (p.constrained && p.side)
+    return perimeter_pos(n, p.p, dir);
+  const pointf at = {p.p.x, (dir > 0 ? -1 : 1) * fmax(ND_ht(n) / 2, 1)};
+  const double pos = perimeter_pos(n, at, dir);
+  return p.constrained ? pos + PORT_TIEBREAK * perimeter_pos(n, p.p, dir) : pos;
+}
+
+static double tail_pos(edge_t *e) {
+  return port_pos(agtail(e), ED_tail_port(e), 1);
+}
+
+static double head_pos(edge_t *e) {
+  return port_pos(aghead(e), ED_head_port(e), -1);
+}
+
 static int64_t in_cross(node_t *v, node_t *w) {
   edge_t **e1, **e2;
   int inv, t;
@@ -601,7 +645,7 @@ static int64_t in_cross(node_t *v, node_t *w) {
 
     for (e1 = ND_in(v).list; *e1; e1++) {
       t = ND_order(agtail(*e1)) - inv;
-      if (t > 0 || (t == 0 && ED_tail_port(*e1).p.x > ED_tail_port(*e2).p.x))
+      if (t > 0 || (t == 0 && tail_pos(*e1) > tail_pos(*e2)))
         cross += ED_xpenalty(*e1) * cnt;
     }
   }
@@ -618,7 +662,7 @@ static int out_cross(node_t *v, node_t *w) {
 
     for (e1 = ND_out(v).list; *e1; e1++) {
       t = ND_order(aghead(*e1)) - inv;
-      if (t > 0 || (t == 0 && ED_head_port(*e1).p.x > ED_head_port(*e2).p.x))
+      if (t > 0 || (t == 0 && head_pos(*e1) > head_pos(*e2)))
         cross += ED_xpenalty(*e1) * cnt;
     }
   }
@@ -1264,7 +1308,7 @@ int build_ranks(graph_t *g, int pass) {
             LIST_FREE(&q);
             return -1;
           }
-          enqueue_neighbors(&q, n0, pass);
+          enqueue_neighbors(&q, n0, pass, GD_flip(g));
         } else {
           const int rc = install_cluster(g, n0, pass, &q);
           if (rc != 0) {
@@ -1293,26 +1337,47 @@ int build_ranks(graph_t *g, int pass) {
   return 0;
 }
 
-void enqueue_neighbors(node_queue_t *q, node_t *n0, int pass) {
+typedef struct {
   edge_t *e;
+  double pos;
+  size_t i; ///< input order, among equal positions
+} edge_pos_t;
 
-  if (pass == 0) {
-    for (size_t i = 0; i < ND_out(n0).size; i++) {
-      e = ND_out(n0).list[i];
-      if (!MARK(aghead(e))) {
-        MARK(aghead(e)) = true;
-        LIST_PUSH_BACK(q, aghead(e));
-      }
-    }
-  } else {
-    for (size_t i = 0; i < ND_in(n0).size; i++) {
-      e = ND_in(n0).list[i];
-      if (!MARK(agtail(e))) {
-        MARK(agtail(e)) = true;
-        LIST_PUSH_BACK(q, agtail(e));
-      }
+static int edge_pos_cmp(const void *a, const void *b) {
+  const edge_pos_t *x = a, *y = b;
+  if (x->pos != y->pos)
+    return (x->pos > y->pos) - (x->pos < y->pos);
+  return (x->i > y->i) - (x->i < y->i);
+}
+
+/* Queue n0's unmarked neighbours on the next rank (pass 0: below; else
+ * above). If their edges leave n0 at compass ports, in the order they leave
+ * its perimeter (reversed if build_ranks flips the ranks: flip); else in
+ * input order. */
+void enqueue_neighbors(node_queue_t *q, node_t *n0, int pass, bool flip) {
+  const elist l = pass == 0 ? ND_out(n0) : ND_in(n0);
+  const int sign = flip ? -1 : 1;
+  edge_pos_t *const es = gv_calloc(l.size, sizeof(edge_pos_t));
+  bool compass = ND_has_port(n0);
+  for (size_t i = 0; i < l.size; i++) {
+    const port p = pass == 0 ? ED_tail_port(l.list[i]) : ED_head_port(l.list[i]);
+    compass &= !p.dyna;
+    es[i] = (edge_pos_t){l.list[i],
+                         !compass    ? 0
+                         : pass == 0 ? sign * tail_pos(l.list[i])
+                                     : sign * head_pos(l.list[i]),
+                         i};
+  }
+  if (compass)
+    qsort(es, l.size, sizeof(edge_pos_t), edge_pos_cmp);
+  for (size_t i = 0; i < l.size; i++) {
+    node_t *const v = pass == 0 ? aghead(es[i].e) : agtail(es[i].e);
+    if (!MARK(v)) {
+      MARK(v) = true;
+      LIST_PUSH_BACK(q, v);
     }
   }
+  free(es);
 }
 
 static bool constraining_flat_edge(Agraph_t *g, Agedge_t *e) {
@@ -1816,26 +1881,22 @@ static void mincross_step(graph_t *g, int pass) {
 }
 
 static int local_cross(elist l, int dir) {
-  int i, j;
   int cross = 0;
-  edge_t *e, *f;
-  bool is_out = dir > 0;
-  for (i = 0; (e = l.list[i]); i++) {
-    if (is_out)
-      for (j = i + 1; (f = l.list[j]); j++) {
-        if ((ND_order(aghead(f)) - ND_order(aghead(e))) *
-                (ED_tail_port(f).p.x - ED_tail_port(e).p.x) <
-            0)
-          cross += ED_xpenalty(e) * ED_xpenalty(f);
-      }
-    else
-      for (j = i + 1; (f = l.list[j]); j++) {
-        if ((ND_order(agtail(f)) - ND_order(agtail(e))) *
-                (ED_head_port(f).p.x - ED_head_port(e).p.x) <
-            0)
-          cross += ED_xpenalty(e) * ED_xpenalty(f);
-      }
+  const bool is_out = dir > 0;
+  double *const pos = gv_calloc(l.size, sizeof(double));
+  for (size_t i = 0; i < l.size; i++)
+    pos[i] = is_out ? tail_pos(l.list[i]) : head_pos(l.list[i]);
+  for (size_t i = 0; i < l.size; i++) {
+    edge_t *const e = l.list[i];
+    const int oe = ND_order(is_out ? aghead(e) : agtail(e));
+    for (size_t j = i + 1; j < l.size; j++) {
+      edge_t *const f = l.list[j];
+      const int of = ND_order(is_out ? aghead(f) : agtail(f));
+      if ((of - oe) * (pos[j] - pos[i]) < 0)
+        cross += ED_xpenalty(e) * ED_xpenalty(f);
+    }
   }
+  free(pos);
   return cross;
 }
 

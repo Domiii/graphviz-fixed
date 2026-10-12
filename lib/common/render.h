@@ -133,6 +133,7 @@ RENDER_API textlabel_t *make_label(void *obj, char *str, bool is_html,
     RENDER_API int rank(graph_t * g, int balance, int maxiter);
     RENDER_API int rank2(graph_t * g, int balance, int maxiter, int search_size);
     RENDER_API port resolvePort(node_t*  n, node_t* other, port* oldport);
+    RENDER_API bool farface_left(node_t *n, pointf p, bool tail);
     RENDER_API void resolvePorts (edge_t* e);
     RENDER_API void round_corners(GVJ_t *job, pointf *AF, size_t sides,
                                   graphviz_polygon_style_t style, int filled);

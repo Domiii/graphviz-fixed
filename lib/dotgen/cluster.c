@@ -390,7 +390,7 @@ int install_cluster(graph_t *g, node_t *n, int pass, node_queue_t *q) {
 	    }
 	}
 	for (r = GD_minrank(clust); r <= GD_maxrank(clust); r++)
-	    enqueue_neighbors(q, GD_rankleader(clust)[r], pass);
+	    enqueue_neighbors(q, GD_rankleader(clust)[r], pass, GD_flip(g));
 	GD_installed(clust) = pass + 1;
     }
     return 0;

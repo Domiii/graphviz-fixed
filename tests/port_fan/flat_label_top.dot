@@ -1,0 +1,9 @@
+digraph flat_label_top {
+  // labeled, non-adjacent flat edge on the top rank: dot adds rank -1 for the
+  // label (flat.c abomination); a regular edge leaves a top-rank node
+  { rank=same; a; x; b; }
+  a -> x;
+  x -> b;
+  a -> b [label="flat label"];
+  a -> c;
+}

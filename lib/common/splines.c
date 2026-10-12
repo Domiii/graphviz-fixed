@@ -372,6 +372,23 @@ void add_box(path * P, boxf b)
 #define FUDGE 2
 #define HT2(n) (ND_ht(n)/2)
 
+/* An end on n's far face (a tail's TOP, a head's BOTTOM) wraps around the
+ * side its port p (relative to n) lies on. At the pole it wraps away from the
+ * ends that reach n from the other rank, so the two fans need not cross;
+ * right if they balance. */
+bool farface_left(node_t *n, pointf p, bool tail)
+{
+    if (p.x != 0)
+	return p.x < 0;
+    const elist l = tail ? ND_in(n) : ND_out(n);
+    int right = 0;
+    for (size_t i = 0; i < l.size; i++) {
+	const port q = tail ? ED_head_port(l.list[i]) : ED_tail_port(l.list[i]);
+	right += (q.p.x > 0) - (q.p.x < 0);
+    }
+    return right > 0;
+}
+
 void
 beginpath(path * P, edge_t * e, int et, pathend_t * endp, bool merge)
 {
@@ -407,7 +424,7 @@ beginpath(path * P, edge_t * e, int et, pathend_t * endp, bool merge)
 	boxf b0, b = endp->nb;
 	if (side & TOP) {
 	    endp->sidemask = TOP;
-	    if (P->start.p.x < ND_coord(n).x) { /* go left */
+	    if (farface_left(n, ED_tail_port(e).p, true)) { /* go left */
 		b0.LL.x = b.LL.x - 1;
 		/* b0.LL.y = ND_coord(n).y + HT2(n); */
 		b0.LL.y = P->start.p.y;
@@ -610,7 +627,7 @@ void endpath(path * P, edge_t * e, int et, pathend_t * endp, bool merge)
 	}
 	else if (side & BOTTOM) {
 	    endp->sidemask = BOTTOM;
-	    if (P->end.p.x < ND_coord(n).x) { /* go left */
+	    if (farface_left(n, ED_head_port(e).p, false)) { /* go left */
 		b0.LL.x = b.LL.x-1;
 		/* b0.UR.y = ND_coord(n).y - HT2(n); */
 		b0.UR.y = P->end.p.y;
