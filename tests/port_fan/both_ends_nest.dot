@@ -1,0 +1,20 @@
+digraph both_ends_nest {
+  // ports on a side of the tail fan to ports on a side of the head, one rank
+  // apart: both ends nest in one rank gap
+  a [shape=plain label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3">
+    <TR><TD PORT="o0">out 0</TD></TR>
+    <TR><TD PORT="o1">out 1</TD></TR>
+    <TR><TD PORT="o2">out 2</TD></TR>
+    <TR><TD PORT="o3">out 3</TD></TR>
+  </TABLE>>];
+  b [shape=plain label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3">
+    <TR><TD PORT="i0">in 0</TD></TR>
+    <TR><TD PORT="i1">in 1</TD></TR>
+    <TR><TD PORT="i2">in 2</TD></TR>
+    <TR><TD PORT="i3">in 3</TD></TR>
+  </TABLE>>];
+  a:o0:e -> b:i0:w;
+  a:o1:e -> b:i1:w;
+  a:o2:e -> b:i2:w;
+  a:o3:e -> b:i3:w;
+}

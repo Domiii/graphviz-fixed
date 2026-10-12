@@ -1,0 +1,13 @@
+digraph bundle3_ports {
+  // three copies of one edge between side ports, one rank apart, beside
+  // fans at the tail and an in-edge at the head
+  t [shape=plain label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+  <TR><TD>a</TD><TD PORT="r0">r0</TD></TR><TR><TD>b</TD><TD PORT="r1">r1</TD></TR>
+  <TR><TD>c</TD><TD PORT="r2">r2</TD></TR></TABLE>>];
+  h [shape=plain label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+  <TR><TD PORT="w0">w0</TD><TD>x</TD></TR><TR><TD PORT="w1">w1</TD><TD>x</TD></TR></TABLE>>];
+  t -> h [tailport="r1:e" headport="w1:w" minlen=1];
+  t -> h [tailport="r1:e" headport="w1:w" minlen=1];
+  t -> h [tailport="r1:e" headport="w1:w" minlen=1];
+  t -> s0 [tailport="r0:e"]; t -> s2 [tailport="r2:e"]; z -> h;
+}
