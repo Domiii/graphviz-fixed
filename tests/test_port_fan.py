@@ -20,6 +20,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from itertools import combinations
 from pathlib import Path
 
@@ -56,6 +57,17 @@ CLEAN = {
     "thin_box_neighbour.dot": RANKDIRS,  # a thin box beside the fan
     "table_chain.dot": RANKDIRS,  # a table below a head fans out too
     "fan_in_cluster.dot": RANKDIRS,  # the fan inside a cluster
+    "same_port_fan.dot": RANKDIRS,  # several edges leave one port
+    "multi_edge_bundle.dot": RANKDIRS,  # copies of one edge among siblings
+    "multi_rank_bundle.dot": RANKDIRS,  # ... along a virtual chain
+    "bundle_into_ports.dot": RANKDIRS,  # copies nested at both ends
+    # ... along a virtual chain; LR: both ends on near faces, no nesting:
+    # copies translated as dot does, meeting at the ports
+    "chain_bundle_into_ports.dot": ("TB", "BT", "RL"),
+    # ... beside fans at the tail; RL: five face wraps share the ranksep / 2
+    # above the top rank, 3.6pt apart (as table_chain RL)
+    "bundle3_ports.dot": ("TB", "LR", "BT"),
+    "both_ends_nest.dot": RANKDIRS,  # side ports to side ports, one rank on
 }
 # fixture -> rankdirs that must lay out without routing errors
 ROUTES = {
@@ -63,6 +75,7 @@ ROUTES = {
     "sliver_boxes.dot": ("TB", "BT"),  # boxes under 0.5pt tall
     "flat_label_top.dot": RANKDIRS,  # rank -1 for a flat edge label
     "flat_label_top_ports.dot": RANKDIRS,  # ... and a port fan
+    "bundle3_ports.dot": RANKDIRS,  # a box under 0.01pt in a copy's chain
 }
 
 # Cases that still fail, with sibling pairs that cross / run together as
@@ -74,10 +87,10 @@ _FOREIGN = (
 )
 _TIGHT = "wraps over the far face share half the rank gap: under 3pt apart"
 KNOWN = {
-    ("neighbour_heads.dot", "TB"): ((6, 9), _FOREIGN, ("cross", "run")),
+    ("neighbour_heads.dot", "TB"): ((6, 9), _FOREIGN, ("run",)),
     ("neighbour_heads.dot", "LR"): ((0, 1), _FOREIGN, ("run",)),
     ("neighbour_heads.dot", "BT"): ((5, 7), _FOREIGN, ("cross", "run")),
-    ("neighbour_heads.dot", "RL"): ((7, 8), _FOREIGN, ("run",)),
+    ("neighbour_heads.dot", "RL"): ((7, 8), _FOREIGN, ("cross", "run")),
     ("shared_heads.dot", "RL"): ((5, 6), _FOREIGN, ("cross", "run")),
     ("thin_box_neighbour.dot", "RL"): ((3, 3), _FOREIGN, ("cross", "run")),
     ("table_chain.dot", "RL"): ((6, 7), _TIGHT, ("run",)),
@@ -96,6 +109,20 @@ REPO = {
     "241_1.dot": (5, 263, 0),
     "graphs/b15.gv": (322, 40588, 0),
     "1323.dot": (37, 3256, 2),  # lost flat edges between record ports
+}
+
+# their bbox (width, height; pt) at 8d835b29e: neither may grow by more than
+# _BB_GROWTH. b15 grows 17% in height: its rank gaps hold the depths where
+# nested ends leave their tracks (sibling run-together 40384 -> 23629pt,
+# crossings 313 -> 307 against 8d835b29e).
+_BB_GROWTH = 0.2
+REPO_BB = {
+    "../graphs/directed/triedds.gv": (950, 566),
+    "graphs/html2.gv": (522, 289),
+    "1332.dot": (3447, 1589),
+    "241_1.dot": (1566, 86),
+    "graphs/b15.gv": (3951, 653),
+    "1323.dot": (435, 705),
 }
 
 # every fixture lays out in each rankdir (complex_weave_sample2: no ports, a
@@ -222,7 +249,11 @@ def test_sibling_edges_do_not_cross(fixture: str, rankdir: str):
     """
 
     graph, _ = run_dot(FIXTURES / fixture, rankdir)
-    bad = [name for name, p1, p2 in sibling_pairs(graph) if crossings(p1, p2)]
+    bad = [
+        f"{name} at ({x:.0f}, {y:.0f})"
+        for name, p1, p2 in sibling_pairs(graph)
+        for x, y in crossings(p1, p2)[:1]
+    ]
     assert not bad, f"sibling edges cross: {bad}"
 
 
@@ -272,3 +303,63 @@ def test_repo_graph_no_worse(graph_file: str):
     run = sum(run_length(p1, p2) for _, p1, p2 in pairs)
     assert cross <= base_cross, f"sibling crossings {base_cross} -> {cross}"
     assert run <= base_run + _GAP, f"sibling run-together {base_run} -> {run:.0f}pt"
+    bb = [float(v) for v in graph["bb"].split(",")]
+    size = (bb[2] - bb[0], bb[3] - bb[1])
+    for got, base, dim in zip(size, REPO_BB[graph_file], ("width", "height")):
+        assert got <= (1 + _BB_GROWTH) * base, f"{dim} {base} -> {got:.0f}pt"
+
+
+# 1500 :e ports of one table fanning out, declared bottom up, against the same
+# fan without ports in the same run: layout time (best of 3) and height
+# ratios with this change (8d835b29e: x2.54, x1.192); time may grow by 20%,
+# height by 1%
+_FAN_ROWS = 1500
+_FAN_BASE = (1.27, 1.213)
+
+
+def big_fan(rows: int, ports: bool) -> str:
+    """a table of rows cells, each (ports: from its :e) to its own node,
+    declared bottom up"""
+    cells = "\n".join(f'<TR><TD PORT="r{i}">r{i}</TD></TR>' for i in range(1, rows + 1))
+    edges = "\n".join(
+        f"n{f':r{i}:e' if ports else ''} -> h{i};" for i in range(rows, 0, -1)
+    )
+    return (
+        'digraph { n [shape=plain label=<<TABLE BORDER="0" CELLBORDER="1" '
+        f'CELLSPACING="0">\n{cells}\n</TABLE>>];\n{edges}\n}}\n'
+    )
+
+
+def fan_cost(source: str) -> tuple[float, float]:
+    """layout time (best of 3) and height of source"""
+    times = []
+    for _ in range(3):
+        start = time.perf_counter()
+        proc = subprocess.run(
+            [which("dot"), "-Tdot"],
+            input=source,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=300,
+        )
+        times.append(time.perf_counter() - start)
+    bb = [float(v) for v in re.search(r'bb="([^"]+)"', proc.stdout)[1].split(",")]
+    return min(times), bb[3] - bb[1]
+
+
+def test_big_fan_cost():
+    """
+    A fan of 1500 ports costs, relative to the same fan without ports, no
+    more time and height than pinned.
+    """
+
+    ports = fan_cost(big_fan(_FAN_ROWS, True))
+    plain = fan_cost(big_fan(_FAN_ROWS, False))
+    time_ratio, height_ratio = ports[0] / plain[0], ports[1] / plain[1]
+    print(f"big fan: time x{time_ratio:.3f}, height x{height_ratio:.3f}")
+    base_time, base_height = _FAN_BASE
+    assert time_ratio <= 1.2 * base_time, f"time ratio {base_time} -> {time_ratio:.3f}"
+    assert height_ratio <= 1.01 * base_height, (
+        f"height ratio {base_height} -> {height_ratio:.3f}"
+    )

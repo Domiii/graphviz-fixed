@@ -1,0 +1,15 @@
+digraph multi_edge_bundle {
+  // copies of one edge (same ports at both ends) among their siblings
+  t [shape=plain label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3">
+    <TR><TD COLSPAN="2"><B>agent</B></TD></TR>
+    <TR><TD>Agent</TD><TD PORT="r0">Explore: a</TD></TR>
+    <TR><TD>Agent</TD><TD PORT="r1">Explore: b</TD></TR>
+    <TR><TD>Agent</TD><TD PORT="r2">Explore: c</TD></TR>
+  </TABLE>>];
+  p -> t;
+  t -> a [tailport="r0:e"];
+  t -> b [tailport="r1:e"];
+  t -> b [tailport="r1:e"];
+  t -> b [tailport="r1:e"];
+  t -> c [tailport="r2:e"];
+}

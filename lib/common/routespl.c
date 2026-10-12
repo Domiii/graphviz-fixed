@@ -311,10 +311,9 @@ static pointf *routesplines_(path *pp, size_t *npoints, int polyline) {
   }
 
   boxes = pp->boxes;
-  const size_t boxn = pp->nbox;
-
-  if (checkpath(boxn, boxes, pp))
+  if (checkpath(pp->nbox, boxes, pp))
     return NULL;
+  const size_t boxn = pp->nbox; // less the degenerate boxes checkpath dropped
 
 #ifdef DEBUG
   if (debugleveln(realedge, 1))
@@ -674,7 +673,7 @@ static int checkpath(size_t boxn, boxf *boxes, path *thepath) {
     boxes[i] = boxes[bi];
     i++;
   }
-  boxn = i;
+  boxn = thepath->nbox = i;
 
   if (boxn == 0) {
     agerrorf("in checkpath, all bounding boxes are below threshold\n");

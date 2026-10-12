@@ -126,12 +126,9 @@ def sibling_metrics(graph: dict) -> tuple[int, int]:
 
 
 # repo graphs with corner ports, at 8d835b29e: sibling crossing points,
-# run-together pairs, bbox width and height (pt). Neither count may grow; the
-# bbox by at most _GROWTH: ports.gv LR grows 27% in height where its corner
-# ports reach the side they lie on (crossings 10 -> 6, run-together 10 -> 7).
-_GROWTH = 0.3
+# run-together pairs, bbox width and height (pt); none may grow (bbox: 1pt)
 PINS = {
-    ("graphs/sl_box.gv", "LR"): (0, 7, 2276, 132),  # 5 at 8d835b29e, see below
+    ("graphs/sl_box.gv", "LR"): (0, 5, 2276, 132),
     ("graphs/sl_box.gv", "RL"): (5, 7, 2472, 132),
     ("graphs/sl_box.gv", "BT"): (0, 0, 275, 1521),
     ("graphs/st_box.gv", "LR"): (2, 6, 2337, 139),
@@ -141,9 +138,15 @@ PINS = {
     ("graphs/ports.gv", "RL"): (11, 10, 444, 392),
     ("graphs/ports.gv", "BT"): (15, 14, 760, 229),
 }
-# sl_box LR: its self loops at corner ports pass the edge entering the node
-# (7 pairs), as in TB with the ports turned a quarter (the same 7 pairs); at
-# 8d835b29e the corners kept their TB sides there.
+# where corner ports lie on their rotated sides, these change (pinned)
+CHANGED = {
+    # self loops at corner ports pass the edge entering the node: the same 7
+    # pairs as in TB with the ports turned a quarter; the loops widen it
+    ("graphs/sl_box.gv", "LR"): (0, 7, 2393, 132),
+    # a:ne and b:down:se on their rotated sides: the rank gaps hold the ends
+    # that nest there, 27% taller (crossings 10 -> 6, run-together 10 -> 7)
+    ("graphs/ports.gv", "LR"): (6, 7, 444, 500),
+}
 
 
 @pytest.mark.parametrize("graph_file,rankdir", list(PINS), ids=lambda v: str(v))
@@ -156,11 +159,11 @@ def test_corner_port_graph_no_worse(graph_file: str, rankdir: str):
     cross, run = sibling_metrics(graph)
     bb = [float(v) for v in graph["bb"].split(",")]
     width, height = bb[2] - bb[0], bb[3] - bb[1]
-    base = PINS[(graph_file, rankdir)]
+    base = CHANGED.get((graph_file, rankdir), PINS[(graph_file, rankdir)])
     print(f"{graph_file} {rankdir}: {(cross, run, round(width), round(height))}")
     assert cross <= base[0], f"sibling crossings {base[0]} -> {cross}"
     assert run <= base[1], f"run-together pairs {base[1]} -> {run}"
-    assert width <= (1 + _GROWTH) * base[2], f"width {base[2]} -> {width:.0f}"
-    assert height <= (1 + _GROWTH) * base[3], f"height {base[3]} -> {height:.0f}"
+    assert width <= base[2] + 1, f"width {base[2]} -> {width:.0f}"
+    assert height <= base[3] + 1, f"height {base[3]} -> {height:.0f}"
 
 

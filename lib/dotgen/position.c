@@ -118,10 +118,12 @@ connectGraph (graph_t* g)
     }
 }
 
-/* After x positioning: siblings that turn around a node's corner toward the
- * adjacent rank, or wrap its far face, nest dot_nest_sep apart there, clear of
- * that rank (a far face gets half the gap, as in begin/endpath). Widen the rank
- * gaps where a nest needs more than they have; ranks above move up. */
+/* After x positioning: ends of a node that leave their tracks past its near
+ * face toward the adjacent rank (their bands, from both ranks of a gap, sep
+ * apart and from the ranks), or nest over its far face (dot_nest_sep apart;
+ * a far face gets half the gap, as in begin/endpath), stay clear of that
+ * rank. Widen the rank gaps where they need more than they have; ranks above
+ * move up. */
 static void nest_room(graph_t *g) {
     if (GD_exact_ranksep(g) || !dot_ports_wrap(g))
 	return;
@@ -131,35 +133,42 @@ static void nest_room(graph_t *g) {
     // room claimed below / above rank r, at [r - lo]
     double *const below = gv_calloc(nr, sizeof(double));
     double *const above = gv_calloc(nr, sizeof(double));
+    // lowest band of rank r's tails / highest of its heads, at [r - lo]
+    double *const low = gv_calloc(nr, sizeof(double));
+    double *const high = gv_calloc(nr, sizeof(double));
     bool any = false;
-    for (int r = lo; r <= hi; r++)
+    for (int r = lo; r <= hi; r++) {
+	low[r - lo] = INFINITY, high[r - lo] = -INFINITY;
 	for (int i = 0; i < rank[r].n; i++) {
 	    node_t *const n = rank[r].v[i];
-	    int turn[2], face[2]; // toward [0] below, [1] above
-	    dot_nest_runs(n, turn, face);
-	    if (!turn[0] && !turn[1] && !face[0] && !face[1])
-		continue;
-	    const double gap_dn = r < hi && rank[r + 1].n > 0
-		? ND_coord(n).y - ND_ht(n) / 2 -
-		      (ND_coord(rank[r + 1].v[0]).y + rank[r + 1].ht2)
-		: INFINITY;
-	    const double gap_up = r > lo && rank[r - 1].n > 0
-		? ND_coord(rank[r - 1].v[0]).y - rank[r - 1].ht1 -
-		      (ND_coord(n).y + ND_ht(n) / 2)
-		: INFINITY;
-	    const double sep = dot_nest_sep(n);
+	    double depth[2]; // toward [0] below, [1] above
+	    int face[2];
+	    dot_nest_room(n, depth, face);
+	    const double sep = dot_nest_sep(n), y = ND_coord(n).y;
+	    if (depth[0] > 0)
+		low[r - lo] = fmin(low[r - lo], y - ND_ht(n) / 2 - depth[0] - sep / 2);
+	    if (depth[1] > 0)
+		high[r - lo] = fmax(high[r - lo], y + ND_ht(n) / 2 + depth[1] + sep / 2);
+	    // tails wrap above; heads below
 	    double *const dn = &below[r - lo], *const up = &above[r - lo];
-	    // tails turn below and wrap above; heads the other way round
-	    if (turn[0] > 1)
-		*dn = fmax(*dn, (turn[0] + 1) * sep - gap_dn);
-	    if (turn[1] > 1)
-		*up = fmax(*up, (turn[1] + 1) * sep - gap_up);
 	    if (face[0] > 1)
-		*up = fmax(*up, 2 * (face[0] + 1) * sep - gap_up);
+		*up = fmax(*up, 2 * (face[0] + 1) * sep - dot_rank_gap(g, n, -1));
 	    if (face[1] > 1)
-		*dn = fmax(*dn, 2 * (face[1] + 1) * sep - gap_dn);
-	    any |= *dn > 0 || *up > 0;
+		*dn = fmax(*dn, 2 * (face[1] + 1) * sep - dot_rank_gap(g, n, 1));
 	}
+    }
+    for (int r = lo; r < hi; r++) {
+	if (rank[r].n == 0 || rank[r + 1].n == 0 ||
+	    (isinf(low[r - lo]) && isinf(high[r + 1 - lo])))
+	    continue;
+	const double bot = ND_coord(rank[r].v[0]).y - rank[r].ht1;
+	const double top = ND_coord(rank[r + 1].v[0]).y + rank[r + 1].ht2;
+	const double clear = fmin(low[r - lo], bot) - fmax(high[r + 1 - lo], top);
+	below[r - lo] = fmax(below[r - lo],
+	                     dot_nest_sep(rank[r].v[0]) - clear);
+    }
+    for (size_t r = 0; r < nr; r++)
+	any |= below[r] > 0 || above[r] > 0;
     if (any) {
 	// rank r moves up by the room claimed at and below it
 	double shift = 0;
@@ -171,6 +180,8 @@ static void nest_room(graph_t *g) {
 		ND_coord(rank[r].v[i]).y += shift;
 	}
     }
+    free(high);
+    free(low);
     free(above);
     free(below);
 }

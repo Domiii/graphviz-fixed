@@ -88,7 +88,8 @@ typedef LIST(Agnode_t *) node_queue_t;
     extern bool dot_ports_wrap(Agraph_t *);
     extern double dot_lateral_room(Agnode_t *, int side, bool saved);
     extern double dot_nest_sep(Agnode_t *);
-    extern void dot_nest_runs(Agnode_t *, int turn[2], int face[2]);
+    extern double dot_rank_gap(Agraph_t *, Agnode_t *, int dir);
+    extern void dot_nest_room(Agnode_t *, double depth[2], int face[2]);
 
 #ifdef __cplusplus
 }

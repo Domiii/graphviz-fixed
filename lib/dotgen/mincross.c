@@ -633,39 +633,57 @@ static double head_pos(edge_t *e) {
   return port_pos(aghead(e), ED_head_port(e), -1);
 }
 
+/* port_pos of l's i-th edge at its tail (or head) end, cached in *pos */
+static double cached_pos(double **pos, elist l, size_t i, bool tail) {
+  if (!*pos) {
+    *pos = gv_calloc(l.size, sizeof(double));
+    for (size_t j = 0; j < l.size; j++)
+      (*pos)[j] = NAN;
+  }
+  if (isnan((*pos)[i]))
+    (*pos)[i] = tail ? tail_pos(l.list[i]) : head_pos(l.list[i]);
+  return (*pos)[i];
+}
+
 static int64_t in_cross(node_t *v, node_t *w) {
-  edge_t **e1, **e2;
-  int inv, t;
+  const elist lv = ND_in(v), lw = ND_in(w);
+  double *pv = NULL, *pw = NULL;
   int64_t cross = 0;
 
-  for (e2 = ND_in(w).list; *e2; e2++) {
-    int cnt = ED_xpenalty(*e2);
+  for (size_t j = 0; j < lw.size; j++) {
+    const int cnt = ED_xpenalty(lw.list[j]);
+    const int inv = ND_order(agtail(lw.list[j]));
 
-    inv = ND_order(agtail(*e2));
-
-    for (e1 = ND_in(v).list; *e1; e1++) {
-      t = ND_order(agtail(*e1)) - inv;
-      if (t > 0 || (t == 0 && tail_pos(*e1) > tail_pos(*e2)))
-        cross += ED_xpenalty(*e1) * cnt;
+    for (size_t i = 0; i < lv.size; i++) {
+      const int t = ND_order(agtail(lv.list[i])) - inv;
+      if (t > 0 || (t == 0 && cached_pos(&pv, lv, i, true) >
+                                  cached_pos(&pw, lw, j, true)))
+        cross += ED_xpenalty(lv.list[i]) * cnt;
     }
   }
+  free(pv);
+  free(pw);
   return cross;
 }
 
 static int out_cross(node_t *v, node_t *w) {
-  edge_t **e1, **e2;
-  int inv, cross = 0, t;
+  const elist lv = ND_out(v), lw = ND_out(w);
+  double *pv = NULL, *pw = NULL;
+  int cross = 0;
 
-  for (e2 = ND_out(w).list; *e2; e2++) {
-    int cnt = ED_xpenalty(*e2);
-    inv = ND_order(aghead(*e2));
+  for (size_t j = 0; j < lw.size; j++) {
+    const int cnt = ED_xpenalty(lw.list[j]);
+    const int inv = ND_order(aghead(lw.list[j]));
 
-    for (e1 = ND_out(v).list; *e1; e1++) {
-      t = ND_order(aghead(*e1)) - inv;
-      if (t > 0 || (t == 0 && head_pos(*e1) > head_pos(*e2)))
-        cross += ED_xpenalty(*e1) * cnt;
+    for (size_t i = 0; i < lv.size; i++) {
+      const int t = ND_order(aghead(lv.list[i])) - inv;
+      if (t > 0 || (t == 0 && cached_pos(&pv, lv, i, false) >
+                                  cached_pos(&pw, lw, j, false)))
+        cross += ED_xpenalty(lv.list[i]) * cnt;
     }
   }
+  free(pv);
+  free(pw);
   return cross;
 }
 
