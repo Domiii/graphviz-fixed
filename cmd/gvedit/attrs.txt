@@ -363,6 +363,12 @@ node ignore the label and only contact the node shape. No warning is given
 if the label is too large.
 :fontcolor:ENGC:color:black;
 Color used for text.
+<P>
+If <TT>"auto"</TT>, each label uses black or white, whichever has the higher
+WCAG contrast against the label's background: the node's fill color (the first
+color of a color list), else the innermost filled cluster containing the label,
+else the root graph's <A HREF=#d:bgcolor>bgcolor</A>, else
+<A HREF=#d:pagecolor>pagecolor</A>. Unknown colors yield black.
 :fontnames:G:string:"";    svg
 Allows user control of how basic fontnames are represented in SVG output.
 If <TT>fontnames</TT> is undefined or <TT>"svg"</TT>,
@@ -1009,6 +1015,11 @@ At present, this only works for PostScript output. For other types of
 output, one should use another tool to split the output into multiple
 output files. Or use the <A HREF=#d:viewport>viewport</A> to generate
 multiple files.
+:pagecolor:G:color:white;
+Assumed color of the surface behind the drawing where
+<A HREF=#d:bgcolor>bgcolor</A> is unset or transparent. It is never painted;
+it only determines <A HREF=#d:fontcolor>fontcolor</A>=<TT>"auto"</TT>, e.g.
+<TT>pagecolor="#111111"</TT> for a dark-mode page.
 :pagedir:G:pagedir:BL;
 If the <A HREF=#d:page>page</A> attribute is set and applicable,
 this attribute specifies the order in which the pages are emitted.

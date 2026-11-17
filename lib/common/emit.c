@@ -1889,7 +1889,7 @@ static void emit_attachment(GVJ_t * job, textlabel_t * lp, splines * spl)
        - need something unambiguous in case of multicolored parallel edges
        - defaults to black for html-like labels
      */
-    gvrender_set_pencolor(job, lp->fontcolor);
+    gvrender_set_pencolor(job, label_fontcolor(job, lp));
     gvrender_polyline(job, AF, 3);
 }
 
@@ -3426,6 +3426,13 @@ static void init_job_viewport(GVJ_t * job, graph_t * g)
     job->focus = xy;
 }
 
+/// declare the `fontcolor` of `obj`, unless resolved per label
+static void emit_fontcolor(GVJ_t *job, void *obj) {
+    char *str = agget(obj, "fontcolor");
+    if (str && str[0] && !streq(str, FONTCOLOR_AUTO))
+	gvrender_set_pencolor(job, str);
+}
+
 static void emit_cluster_colors(GVJ_t * job, graph_t * g)
 {
     graph_t *sg;
@@ -3443,8 +3450,7 @@ static void emit_cluster_colors(GVJ_t * job, graph_t * g)
 	    gvrender_set_pencolor(job, str);
 	if (((str = agget(sg, "fillcolor")) != 0) && str[0])
 	    gvrender_set_fillcolor(job, str);
-	if (((str = agget(sg, "fontcolor")) != 0) && str[0])
-	    gvrender_set_pencolor(job, str);
+	emit_fontcolor(job, sg);
     }
 }
 
@@ -3457,8 +3463,7 @@ static void emit_colors(GVJ_t * job, graph_t * g)
     gvrender_set_fillcolor(job, DEFAULT_FILL);
     if (((str = agget(g, "bgcolor")) != 0) && str[0])
 	gvrender_set_fillcolor(job, str);
-    if (((str = agget(g, "fontcolor")) != 0) && str[0])
-	gvrender_set_pencolor(job, str);
+    emit_fontcolor(job, g);
   
     emit_cluster_colors(job, g);
     for (n = agfstnode(g); n; n = agnxtnode(g, n)) {
@@ -3480,8 +3485,7 @@ static void emit_colors(GVJ_t * job, graph_t * g)
 		gvrender_set_pencolor(job, str);
 	    }
 	}
-	if (((str = agget(n, "fontcolor")) != 0) && str[0])
-	    gvrender_set_pencolor(job, str);
+	emit_fontcolor(job, n);
 	for (e = agfstout(g, n); e; e = agnxtout(g, e)) {
 	    if (((str = agget(e, "color")) != 0) && str[0]) {
 		if (strchr(str, ':')) {
@@ -3497,8 +3501,7 @@ static void emit_colors(GVJ_t * job, graph_t * g)
 		    gvrender_set_pencolor(job, str);
 		}
 	    }
-	    if (((str = agget(e, "fontcolor")) != 0) && str[0])
-		gvrender_set_pencolor(job, str);
+	    emit_fontcolor(job, e);
 	}
     }
 }
@@ -3774,6 +3777,26 @@ static void emit_end_cluster(GVJ_t *job) {
     pop_obj_state(job);
 }
 
+/// fill color of cluster `sg`; sets `*filled` if implied by `bgcolor`
+static char *cluster_fillcolor(graph_t *sg, int *filled) {
+    char *color, *fillcolor = NULL;
+
+    if ((color = agget(sg, "color")) != 0 && color[0])
+	fillcolor = color;
+    if ((color = agget(sg, "fillcolor")) != 0 && color[0])
+	fillcolor = color;
+    /* bgcolor is supported for backward compatibility
+       if fill is set, fillcolor trumps bgcolor, so
+       don't bother checking.
+       if gradient is set fillcolor trumps bgcolor
+     */
+    if ((*filled == 0 || !fillcolor) && (color = agget(sg, "bgcolor")) != 0 && color[0]) {
+	fillcolor = color;
+	*filled = FILL;
+    }
+    return fillcolor ? fillcolor : DEFAULT_FILL;
+}
+
 void emit_clusters(GVJ_t * job, Agraph_t * g, int flags)
 {
     int doPerim, c, filled;
@@ -3833,21 +3856,10 @@ void emit_clusters(GVJ_t * job, Agraph_t * g, int flags)
 	}
 	else {
 	    if ((color = agget(sg, "color")) != 0 && color[0])
-		fillcolor = pencolor = color;
+		pencolor = color;
 	    if ((color = agget(sg, "pencolor")) != 0 && color[0])
 		pencolor = color;
-	    if ((color = agget(sg, "fillcolor")) != 0 && color[0])
-		fillcolor = color;
-	    /* bgcolor is supported for backward compatibility 
-	       if fill is set, fillcolor trumps bgcolor, so
-               don't bother checking.
-               if gradient is set fillcolor trumps bgcolor
-             */
-	    if ((filled == 0 || !fillcolor) && (color = agget(sg, "bgcolor")) != 0 && color[0]) {
-		fillcolor = color;
-	        filled = FILL;
-            }
-
+	    fillcolor = cluster_fillcolor(sg, &filled);
 	}
 	if (!pencolor) pencolor = DEFAULT_COLOR;
 	if (!fillcolor) fillcolor = DEFAULT_FILL;
@@ -4071,6 +4083,99 @@ char **parse_style(char *s)
     parse[fun] = NULL;
 
     return parse;
+}
+
+/// does `style` list `item` outside of function arguments?
+///
+/// Unlike `parse_style`, this leaves the active object’s `rawstyle` intact.
+static bool style_has(char *style, const char *item) {
+    bool in_parens = false;
+    for (token_t t = style_token(&style); t.type != 0; t = style_token(&style)) {
+	if (t.type == '(' || t.type == ')')
+	    in_parens = t.type == '(';
+	else if (!in_parens &&
+	         strview_str_eq((strview_t){.data = t.start, .size = t.size}, item))
+	    return true;
+    }
+    return false;
+}
+
+/// parse the first color of color list `clrs`
+static int first_color(const char *clrs, gvcolor_t *color) {
+    char *clr = gv_strndup(clrs, strcspn(clrs, ":;"));
+    const int rc = colorxlate(clr, color, RGBA_DOUBLE);
+    free(clr);
+    return rc;
+}
+
+/// is `clrs` visible, i.e. not fully transparent?
+static bool is_painted(const char *clrs) {
+    gvcolor_t color;
+    return first_color(clrs, &color) != COLOR_OK || color.u.RGBA[3] > 0;
+}
+
+/// paint color of cluster `sg`, `NULL` if unpainted
+static char *cluster_paint(graph_t *sg) {
+    char *style = agget(sg, "style");
+    const bool has_style = style && style[0];
+    int filled = has_style && (style_has(style, "filled") ||
+                               style_has(style, "radial")) ? FILL : 0;
+    const bool striped = has_style && style_has(style, "striped");
+    char *fillcolor = cluster_fillcolor(sg, &filled);
+    return (filled != 0 || striped) && is_painted(fillcolor) ? fillcolor : NULL;
+}
+
+/// color behind point `p` in the innermost painted cluster of `g`, else `bg`
+static char *cluster_bgcolor(graph_t *g, pointf p, char *bg) {
+    for (int c = 1; c <= GD_n_cluster(g); c++) {
+	graph_t *sg = GD_clust(g)[c];
+	if (INSIDE(p, GD_bb(sg))) {
+	    char *fill = cluster_paint(sg);
+	    return cluster_bgcolor(sg, p, fill ? fill : bg);
+	}
+    }
+    return bg;
+}
+
+/// color behind point `p` of root graph `g`
+static char *graph_bgcolor(graph_t *g, pointf p) {
+    char *bg = agget(g, "bgcolor");
+    if (!bg || !bg[0] || !is_painted(bg)) {
+	bg = agget(g, "pagecolor");
+	if (!bg || !bg[0])
+	    bg = "white";
+    }
+    return cluster_bgcolor(g, p, bg);
+}
+
+/// WCAG 2 relative luminance of an `RGBA_DOUBLE` color
+static double luminance(const gvcolor_t *color) {
+    const double weights[] = {0.2126, 0.7152, 0.0722};
+    double lum = 0;
+    for (int i = 0; i < 3; i++) {
+	const double v = color->u.RGBA[i];
+	lum += weights[i] * (v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4));
+    }
+    return lum;
+}
+
+char *label_fontcolor(GVJ_t *job, textlabel_t *lp) {
+    if (!streq(lp->fontcolor, FONTCOLOR_AUTO))
+	return lp->fontcolor;
+
+    obj_state_t *obj = job->obj;
+    char *bg = NULL;
+    if (obj->type == NODE_OBJTYPE && lp != ND_xlabel(obj->u.n))
+	bg = node_fillcolor(obj->u.n);
+    if (!bg || !is_painted(bg))
+	bg = graph_bgcolor(job->gvc->g, lp->pos);
+
+    gvcolor_t color;
+    if (first_color(bg, &color) != COLOR_OK)
+	return DEFAULT_COLOR;
+    // higher WCAG contrast ratio: against white vs. against black
+    const double lum = luminance(&color);
+    return 1.05 / (lum + 0.05) > (lum + 0.05) / 0.05 ? "white" : "black";
 }
 
 static boxf bezier_bb(bezier bz)
