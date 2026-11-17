@@ -573,7 +573,19 @@ static int64_t mincross_clust(graph_t *g) {
   return nc;
 }
 
+/* `v` left of `w` keeps both their `rankorder`s ascending in drawing order. */
+static bool rankorder_kept(graph_t *g, node_t *v, node_t *w) {
+  if (!ND_has_rankorder(v) || !ND_has_rankorder(w))
+    return false;
+  if (GD_flip(dot_root(g))) {
+    SWAP(&v, &w);
+  }
+  return ND_rankorder(v) < ND_rankorder(w);
+}
+
 static bool left2right(graph_t *g, node_t *v, node_t *w) {
+  if (rankorder_kept(g, v, w))
+    return true;
   /* CLUSTER indicates orig nodes of clusters, and vnodes of skeletons */
   if (!ReMincross) {
     if (ND_clust(v) != ND_clust(w) && ND_clust(v) && ND_clust(w)) {
@@ -1275,6 +1287,46 @@ int install_in_rank(graph_t *g, node_t *n) {
   return 0;
 }
 
+static int rankorder_cmp(const void *x, const void *y) {
+  node_t *const *a = x;
+  node_t *const *b = y;
+  if (ND_rankorder(*a) != ND_rankorder(*b))
+    return ND_rankorder(*a) < ND_rankorder(*b) ? -1 : 1;
+  return ND_order(*a) - ND_order(*b);
+}
+
+/* Nodes of rank `r` with a `rankorder` take the slots they occupy, in
+ * ascending `rankorder` drawing order; the others keep theirs. */
+static void seed_rankorder(graph_t *g, int r) {
+  node_t **const v = GD_rank(g)[r].v;
+  const int n = GD_rank(g)[r].n;
+  int k = 0;
+  for (int i = 0; i < n; i++)
+    k += ND_has_rankorder(v[i]);
+  if (k == 0)
+    return;
+  node_t **const hinted = gv_calloc((size_t)k, sizeof(node_t *));
+  int *const slots = gv_calloc((size_t)k, sizeof(int));
+  int *const orders = gv_calloc((size_t)k, sizeof(int));
+  for (int i = 0, j = 0; i < n; i++) {
+    if (ND_has_rankorder(v[i])) {
+      hinted[j] = v[i];
+      orders[j] = ND_order(v[i]);
+      slots[j++] = i;
+    }
+  }
+  qsort(hinted, (size_t)k, sizeof(node_t *), rankorder_cmp);
+  const bool flip = GD_flip(dot_root(g));
+  for (int j = 0; j < k; j++) {
+    node_t *const u = hinted[flip ? k - 1 - j : j];
+    v[slots[j]] = u;
+    ND_order(u) = orders[j];
+  }
+  free(orders);
+  free(slots);
+  free(hinted);
+}
+
 /*	install nodes in ranks. the initial ordering ensure that series-parallel
  *	graphs such as trees are drawn with no crossings.  it tries searching
  *	in- and out-edges and takes the better of the two initial orderings.
@@ -1347,6 +1399,7 @@ int build_ranks(graph_t *g, int pass) {
       for (j = 0; j <= half_num_nodes_1; j++)
         exchange(vlist[j], vlist[num_nodes_1 - j]);
     }
+    seed_rankorder(g, i);
   }
 
   if (g == dot_root(g) && ncross() > 0)
@@ -1820,6 +1873,15 @@ static void flat_reorder(graph_t *g) {
   LIST_FREE(&temprank);
 }
 
+/* Exchanging `*lp` and `*rp` moves `*rp` left of the nodes between them. */
+static bool rankorder_passable(graph_t *g, node_t **lp, node_t **rp) {
+  for (node_t **mid = lp + 1; mid < rp; mid++) {
+    if (rankorder_kept(g, *mid, *rp))
+      return false;
+  }
+  return true;
+}
+
 static void reorder(graph_t *g, int r, bool reverse, bool hasfixed) {
   int changed = 0, nelt;
   node_t **vlist = GD_rank(g)[r].v;
@@ -1850,7 +1912,7 @@ static void reorder(graph_t *g, int r, bool reverse, bool hasfixed) {
       }
       if (rp >= ep)
         break;
-      if (!muststay) {
+      if (!muststay && rankorder_passable(g, lp, rp)) {
         const double p1 = ND_mval(*lp);
         const double p2 = ND_mval(*rp);
         if (p1 > p2 || (p1 >= p2 && reverse)) {
