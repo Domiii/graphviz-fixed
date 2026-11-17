@@ -806,7 +806,7 @@ static gvrender_engine_t svg_engine = {
 };
 
 static gvrender_features_t render_features_svg = {
-    GVRENDER_Y_GOES_DOWN | GVRENDER_DOES_TRANSFORM | GVRENDER_DOES_LABELS | GVRENDER_DOES_MAPS | GVRENDER_DOES_TARGETS | GVRENDER_DOES_TOOLTIPS,	/* flags */
+    GVRENDER_Y_GOES_DOWN | GVRENDER_DOES_TRANSFORM | GVRENDER_DOES_LABELS | GVRENDER_DOES_MAPS | GVRENDER_DOES_TARGETS | GVRENDER_DOES_TOOLTIPS | GVRENDER_NO_WHITE_BG,	/* flags */
     4.,				/* default pad - graph units */
     svg_knowncolors,		/* knowncolors */
     sizeof(svg_knowncolors) / sizeof(char *),	/* sizeof knowncolors */
