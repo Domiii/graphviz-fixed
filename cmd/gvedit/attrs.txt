@@ -1115,6 +1115,18 @@ reverses two of them, and places the other nodes freely. A cluster is ordered
 by the least <B>rankorder</B> of its nodes. Applies within a connected
 component. Setting each node's <B>rankorder</B> to its coordinate in a
 previous layout keeps their order when the graph grows.
+:rankpos:N:double:; dot
+Target position of a node along its rank, in points, increasing left to right
+(top to bottom for <A HREF=#d:rankdir>rankdir</A>=LR or RL). Nodes that set
+<B>rankpos</B> are pulled toward their <B>rankpos</B> differences: the cost of
+each one's deviation is weighted by <A HREF=#d:rankposweight>rankposweight</A>,
+against the usual edge straightening and compaction. Only differences matter,
+so the drawing as a whole may shift. Setting each node's <B>rankpos</B> to its
+coordinate in a previous layout keeps it in place when the graph grows.
+:rankposweight:G:int:1:0; dot
+Weight of the pull of each node toward its
+<A HREF=#d:rankpos>rankpos</A>, comparable to an edge
+<A HREF=#d:weight>weight</A>. 0 disables it.
 :rankdir:G:rankdir:TB; dot
 Sets direction of graph layout. For example, if <B>rankdir</B>="LR",
 and barring cycles, an edge <CODE>T -> H;</CODE> will go
