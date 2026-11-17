@@ -7,6 +7,12 @@ and this project adheres to
 
 ## [Unreleased (16.1.1)]
 
+### Changed
+
+- The SVG renderer no longer paints a white page background when the graph
+  has no `bgcolor`; the background is transparent. An explicit `bgcolor`
+  (including `white`) is still painted.
+
 ### Fixed
 
 - `nop` no longer reorders edges. #2855
