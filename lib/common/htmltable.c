@@ -764,7 +764,7 @@ void emit_html_label(GVJ_t * job, htmllabel_t * lp, textlabel_t * tp)
 	    break;
     }
     env.pos = p;
-    env.finfo.color = tp->fontcolor;
+    env.finfo.color = label_fontcolor(job, tp);
     env.finfo.name = tp->fontname;
     env.finfo.size = tp->fontsize;
     env.imgscale = agget(job->obj->u.n, "imagescale");
@@ -1009,14 +1009,12 @@ static int size_html_txt(GVC_t *gvc, htmltxt_t * ftxt, htmlenv_t * env)
 		    tf.name = ftxt->spans[i].items[j].font->name;
 		else
 		    tf.name = env->finfo.name;
-		if (ftxt->spans[i].items[j].font->color)
-		    tf.color = ftxt->spans[i].items[j].font->color;
-		else
-		    tf.color = env->finfo.color;
+		// an inherited color is resolved at emit (`fontcolor=auto`)
+		tf.color = ftxt->spans[i].items[j].font->color;
 	    } else {
 		tf.size = env->finfo.size;
 		tf.name = env->finfo.name;
-		tf.color = env->finfo.color;
+		tf.color = NULL;
 		tf.flags = env->finfo.flags;
 	    }
 	    lp.font = dtinsert(gvc->textfont_dt, &tf);

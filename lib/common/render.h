@@ -112,6 +112,8 @@ extern "C" {
 RENDER_API bool initMapData(GVJ_t *, char *, char *, char *, char *, char *,
                             void *);
     RENDER_API bool isPolygon(node_t *);
+    /// text color of `lp`, resolving `fontcolor=auto` against its background
+    RENDER_API char *label_fontcolor(GVJ_t *job, textlabel_t *lp);
     RENDER_API void makeSelfEdge(edge_t *edges[], size_t cnt, double sizex,
                                  double sizey, splineInfo *sinfo);
 
@@ -122,6 +124,8 @@ RENDER_API textlabel_t *make_label(void *obj, char *str, bool is_html,
                                    char *fontname, char *fontcolor);
 
     RENDER_API bezier *new_spline(edge_t *e, size_t sz);
+    /// fill color of node `n`, `NULL` if unfilled
+    RENDER_API char *node_fillcolor(node_t *n);
     RENDER_API char **parse_style(char *s);
     RENDER_API void place_graph_label(Agraph_t *);
     RENDER_API int place_portlabel(edge_t * e, bool head_p);

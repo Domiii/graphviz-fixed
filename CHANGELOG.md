@@ -13,6 +13,10 @@ and this project adheres to
   `-DAname=val` set graph, node, edge, or all attribute defaults like `-G`,
   `-N`, `-E`, and `-A`, except that values set in the input graph take
   precedence.
+- `fontcolor=auto` renders a label in black or white, whichever has the higher
+  WCAG contrast against the label's background: the node's fill, else the
+  innermost filled cluster, else the root `bgcolor`, else the new graph
+  attribute `pagecolor` (default `white`), which is never painted.
 
 ### Changed
 

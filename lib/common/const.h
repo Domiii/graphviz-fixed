@@ -46,6 +46,7 @@
 
 /* default attributes */
 #define		DEFAULT_COLOR		"black"
+#define		FONTCOLOR_AUTO		"auto" ///< black or white, by contrast
 #define		DEFAULT_ACTIVEPENCOLOR	"#808080"
 #define		DEFAULT_ACTIVEFILLCOLOR	"#fcfcfc"
 #define		DEFAULT_ACTIVEFONTCOLOR	"black"

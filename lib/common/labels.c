@@ -234,7 +234,7 @@ void emit_label(GVJ_t * job, emit_state_t emit_state, textlabel_t * lp)
 	return;
 
     gvrender_begin_label(job, LABEL_PLAIN);
-    gvrender_set_pencolor(job, lp->fontcolor);
+    gvrender_set_pencolor(job, label_fontcolor(job, lp));
 
     /* position for first span */
     switch (lp->valign) {

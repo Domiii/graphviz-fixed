@@ -544,6 +544,13 @@ static graphviz_polygon_style_t stylenode(GVJ_t *job, node_t *n) {
     return istyle;
 }
 
+/// Re-parsing `n`’s own style leaves the active `rawstyle` content unchanged.
+char *node_fillcolor(node_t *n) {
+    graphviz_polygon_style_t istyle = {0};
+    checkStyle(n, &istyle);
+    return istyle.filled || istyle.striped || istyle.wedged ? findFill(n) : NULL;
+}
+
 static void Mcircle_hack(GVJ_t * job, node_t * n)
 {
     double x, y;
