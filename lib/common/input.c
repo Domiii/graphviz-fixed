@@ -32,7 +32,7 @@
 #include <util/streq.h>
 
 static char *usageFmt =
-    "Usage: %s [-Vv?] [-(GNEA)name=val] [-(KTlso)<val>] <dot files>\n";
+    "Usage: %s [-Vv?] [-[D](GNEA)name=val] [-(KTlso)<val>] <dot files>\n";
 
 static char *genericItems = "\n\
  -V          - Print version and exit\n\
@@ -41,6 +41,7 @@ static char *genericItems = "\n\
  -Nname=val  - Set node attribute 'name' to 'val'\n\
  -Ename=val  - Set edge attribute 'name' to 'val'\n\
  -Aname=val  - Set attribute 'name' to 'val' for graph, node, and edge\n\
+ -D(GNEA)name=val - As -(GNEA), but only a default: attributes set in the input override it\n\
  -Tv         - Set output format to 'v'\n\
  -Kv         - Set layout engine to 'v' (overrides default based on command name)\n\
  -lv         - Use external library 'v'\n\
@@ -175,7 +176,11 @@ static void use_library(GVC_t *gvc, const char *name)
     gvc->common.lib = Lib;
 }
 
-static void global_def(char *dcl, int kind) {
+/// declare a command-line attribute default
+///
+/// @param fixed If true, the value overrides any value set in the input graph
+///   (`-G`, `-N`, `-E`, `-A`). If false, it is only a default (`-D…`).
+static void global_def(char *dcl, int kind, bool fixed) {
     char *p;
     char *rhs = "true";
     agxbuf xb = {0};
@@ -188,8 +193,18 @@ static void global_def(char *dcl, int kind) {
     else
 	agxbput(&xb, dcl);
     sym = agattr_text(NULL, kind, agxbuse(&xb), rhs);
-    sym->fixed = 1;
+    sym->fixed = fixed;
     agxbfree(&xb);
+}
+
+/// apply `-<which>name=val`, `which` ∈ {G, N, E, A}
+static void global_defs(char which, char *dcl, bool fixed) {
+  if (which == 'G' || which == 'A')
+    global_def(dcl, AGRAPH, fixed);
+  if (which == 'N' || which == 'A')
+    global_def(dcl, AGNODE, fixed);
+  if (which == 'E' || which == 'A')
+    global_def(dcl, AGEDGE, fixed);
 }
 
 static int gvg_init(GVC_t *gvc, graph_t *g, char *fn, int gidx)
@@ -279,36 +294,21 @@ int dotneato_args_initialize(GVC_t * gvc, int argc, char **argv)
 	    char *const rest = &argv[i][2];
 	    switch (c = argv[i][1]) {
 	    case 'G':
-		if (*rest)
-		    global_def(rest, AGRAPH);
-		else {
-		    fprintf(stderr, "Missing argument for -G flag\n");
-		    return dotneato_usage(argv[0], 1);
-		}
-		break;
 	    case 'N':
-		if (*rest)
-		    global_def(rest, AGNODE);
-		else {
-		    fprintf(stderr, "Missing argument for -N flag\n");
-		    return dotneato_usage(argv[0], 1);
-		}
-		break;
 	    case 'E':
+	    case 'A':
 		if (*rest)
-		    global_def(rest, AGEDGE);
+		    global_defs((char)c, rest, true);
 		else {
-		    fprintf(stderr, "Missing argument for -E flag\n");
+		    fprintf(stderr, "Missing argument for -%c flag\n", c);
 		    return dotneato_usage(argv[0], 1);
 		}
 		break;
-	    case 'A':
-		if (*rest) {
-		    global_def(rest, AGRAPH);
-		    global_def(rest, AGNODE);
-		    global_def(rest, AGEDGE);
-		} else {
-		    fprintf(stderr, "Missing argument for -A flag\n");
+	    case 'D':
+		if (rest[0] != '\0' && strchr("GNEA", rest[0]) && rest[1] != '\0')
+		    global_defs(rest[0], &rest[1], false);
+		else {
+		    fprintf(stderr, "Missing or invalid argument for -D flag (expected -D(GNEA)name=val)\n");
 		    return dotneato_usage(argv[0], 1);
 		}
 		break;

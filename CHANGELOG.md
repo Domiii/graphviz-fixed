@@ -7,6 +7,13 @@ and this project adheres to
 
 ## [Unreleased (16.1.1)]
 
+### Added
+
+- Command-line flags `-DGname=val`, `-DNname=val`, `-DEname=val`, and
+  `-DAname=val` set graph, node, edge, or all attribute defaults like `-G`,
+  `-N`, `-E`, and `-A`, except that values set in the input graph take
+  precedence.
+
 ### Changed
 
 - The SVG renderer no longer paints a white page background when the graph

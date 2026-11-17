@@ -589,6 +589,15 @@ The default is 1.0.
 .br
 \fB\-E\fP sets a default edge attribute.
 Example: \fB\-Gsize="7,8" \-Nshape=box \-Efontsize=8\fR
+.br
+\fB\-A\fP sets a default graph, node, and edge attribute.
+Values set by these flags override values set in the input graph.
+.PP
+\fB\-D\fP(\fBGNEA\fP)\fIname\fB=\fIval\fR sets a default graph (\fBG\fP), node (\fBN\fP),
+edge (\fBE\fP), or graph, node, and edge (\fBA\fP) attribute like \fB\-G\fP,
+\fB\-N\fP, \fB\-E\fP, \fB\-A\fP, except that any value set in the input graph
+(object attribute or \fBgraph\fP/\fBnode\fP/\fBedge\fP default statement) takes precedence.
+Example: \fB\-DNfontcolor=white \-DEcolor=gray\fR
 .PP
 \fB\-\-filepath=\fIpath\fR uses \fIpath\fR as a prefix for locating externally
 referenced files. For example, using \fB\-\-filepath=bar/baz\fR would cause
