@@ -439,6 +439,56 @@ static WUR int make_edge_pairs(graph_t *g) {
     return 0;
 }
 
+/// `rankpos` in this phase's x: drawing order is mirrored for rankdir=LR/RL
+static double rankpos_x(graph_t *g, node_t *v) {
+    return GD_flip(dot_root(g)) ? -ND_rankpos(v) : ND_rankpos(v);
+}
+
+/// Pull each node `v` that sets `rankpos` toward it: a slack node `s` with
+/// edges `s -> a` and `s -> v` to a shared anchor `a` costs
+/// `w * |x(v) - x(a) - d(v)|`, `d(v)` = its `rankpos` beyond the least one. So
+/// only `rankpos` differences matter: the hinted nodes keep their relative
+/// placement, the drawing is free to shift.
+///
+/// @return 0 on success
+static WUR int make_rankpos_pulls(graph_t *g) {
+    const int weight =
+        late_int(g, agattr_text(g, AGRAPH, "rankposweight", NULL), 1, 0);
+    rank_t *const rank = GD_rank(g);
+    bool hinted = false;
+    double least = 0;
+    for (int i = GD_minrank(g); i <= GD_maxrank(g); i++) {
+	for (int j = 0; j < rank[i].n; j++) {
+	    node_t *const v = rank[i].v[j];
+	    if (ND_has_rankpos(v)) {
+		least = hinted ? fmin(least, rankpos_x(g, v)) : rankpos_x(g, v);
+		hinted = true;
+	    }
+	}
+    }
+    if (!hinted || weight == 0)
+	return 0;
+    node_t *const anchor = virtual_node(g);
+    ND_node_type(anchor) = SLACKNODE;
+    ND_rank(anchor) = 0;
+    for (int i = GD_minrank(g); i <= GD_maxrank(g); i++) {
+	for (int j = 0; j < rank[i].n; j++) {
+	    node_t *const v = rank[i].v[j];
+	    if (!ND_has_rankpos(v))
+		continue;
+	    const double d = rankpos_x(g, v) - least;
+	    node_t *const sn = virtual_node(g);
+	    ND_node_type(sn) = SLACKNODE;
+	    edge_t *const to_v = make_aux_edge(sn, v, d + 1, weight);
+	    if (to_v == NULL || make_aux_edge(sn, anchor, 1, weight) == NULL) {
+		return -1;
+	    }
+	    ND_rank(sn) = MIN(ND_rank(anchor) - 1, ND_rank(v) - ED_minlen(to_v));
+	}
+    }
+    return 0;
+}
+
 static void contain_clustnodes(graph_t * g)
 {
     int c;
@@ -620,6 +670,12 @@ static int create_aux_edges(graph_t *g) {
     }
     {
         const int rc = make_edge_pairs(g);
+        if (rc != 0) {
+          return rc;
+        }
+    }
+    {
+        const int rc = make_rankpos_pulls(g);
         if (rc != 0) {
           return rc;
         }
