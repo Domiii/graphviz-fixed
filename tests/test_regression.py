@@ -7442,7 +7442,7 @@ def test_gvpr_printf(statement: str, expected: str):
 
 
 usage_info = """\
-Usage: dot [-Vv?] [-(GNEA)name=val] [-(KTlso)<val>] <dot files>
+Usage: dot [-Vv?] [-[D](GNEA)name=val] [-(KTlso)<val>] <dot files>
 (additional options for neato)    [-x] [-n<v>]
 (additional options for fdp)      [-L(gO)] [-L(nUCT)<val>]
 (additional options for config)  [-cv]
@@ -7453,6 +7453,7 @@ Usage: dot [-Vv?] [-(GNEA)name=val] [-(KTlso)<val>] <dot files>
  -Nname=val  - Set node attribute 'name' to 'val'
  -Ename=val  - Set edge attribute 'name' to 'val'
  -Aname=val  - Set attribute 'name' to 'val' for graph, node, and edge
+ -D(GNEA)name=val - As -(GNEA), but only a default: attributes set in the input override it
  -Tv         - Set output format to 'v'
  -Kv         - Set layout engine to 'v' (overrides default based on command name)
  -lv         - Use external library 'v'
