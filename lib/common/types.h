@@ -466,8 +466,6 @@ typedef enum {NATIVEFONTS,PSFONTS,SVGFONTS} fontname_kind;
 	double mval;
 	bool has_rankorder;
 	double rankorder;
-	bool has_rankpos;
-	double rankpos;
 	elist save_in;
 	elist save_out;
 
@@ -527,8 +525,6 @@ typedef enum {NATIVEFONTS,PSFONTS,SVGFONTS} fontname_kind;
 #define ND_rank(n) (((Agnodeinfo_t*)AGDATA(n))->rank)
 #define ND_rankorder(n) (((Agnodeinfo_t*)AGDATA(n))->rankorder)
 #define ND_has_rankorder(n) (((Agnodeinfo_t*)AGDATA(n))->has_rankorder)
-#define ND_rankpos(n) (((Agnodeinfo_t*)AGDATA(n))->rankpos)
-#define ND_has_rankpos(n) (((Agnodeinfo_t*)AGDATA(n))->has_rankpos)
 #define ND_ranktype(n) (((Agnodeinfo_t*)AGDATA(n))->ranktype)
 #define ND_rw(n) (((Agnodeinfo_t*)AGDATA(n))->rw)
 #define ND_save_in(n) (((Agnodeinfo_t*)AGDATA(n))->save_in)

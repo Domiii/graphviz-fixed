@@ -21,10 +21,6 @@ and this project adheres to
   `rankorder` within their rank and are never reordered against each other by
   crossing minimization; clusters order by their least member `rankorder`.
   Without it, layouts are unchanged.
-- Node attribute `rankpos` (dot): nodes that set it are pulled toward their
-  `rankpos` differences along the rank (x for rankdir=TB/BT), weighted by the
-  graph attribute `rankposweight` (default 1; 0 disables). Without it, layouts
-  are unchanged.
 
 ### Changed
 
