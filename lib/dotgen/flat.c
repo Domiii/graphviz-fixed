@@ -101,6 +101,54 @@ static void setbounds(node_t * v, int *bounds, int lpos, int rpos)
     }
 }
 
+/// whether `n` is drawn within cluster `c`
+static bool in_cluster(node_t *n, graph_t *c) {
+  for (graph_t *k = ND_clust(n); k; k = GD_parent(k)) {
+    if (k == c)
+      return true;
+  }
+  return false;
+}
+
+/// first and last slot of cluster `c`'s nodes on rank `r` of root `g`; -1: none
+static void cluster_span(graph_t *g, graph_t *c, int r, int *first, int *last) {
+  *first = *last = -1;
+  for (int i = 0; i < GD_rank(g)[r].n; i++) {
+    if (in_cluster(GD_rank(g)[r].v[i], c)) {
+      *first = *first < 0 ? i : *first;
+      *last = i;
+    }
+  }
+}
+
+/// Narrows `[*lo, *hi]`, the slots on rank `r - 1` for the label node of a flat
+/// edge between slots `left` < `right` of rank `r`, to those cluster `c` and
+/// its subclusters allow. The label node belongs to no cluster and sits
+/// between both ends, so it must be right of a cluster that, on rank `r`,
+/// reaches the left end but not the right one, left of one reaching only the
+/// right end, and inside one reaching both. Otherwise cluster containment and
+/// the label's own constraints contradict each other in x positioning.
+static void cluster_limits(graph_t *g, graph_t *c, int r, int left, int right,
+                           int *lo, int *hi) {
+  int first, last, above_first, above_last;
+  cluster_span(g, c, r, &first, &last);
+  cluster_span(g, c, r - 1, &above_first, &above_last);
+  if (first >= 0 && above_first >= 0) {
+    const bool reaches_left = first <= left;
+    const bool reaches_right = last >= right;
+    if (reaches_left && reaches_right) {
+      *lo = MAX(*lo, above_first);
+      *hi = MIN(*hi, above_last + 1);
+    } else if (reaches_left) {
+      *lo = MAX(*lo, above_last + 1);
+    } else if (reaches_right) {
+      *hi = MIN(*hi, above_first);
+    }
+  }
+  for (int i = 1; i <= GD_n_cluster(c); i++)
+    cluster_limits(g, GD_clust(c)[i], r, left, right, lo, hi);
+}
+
 static int flat_limits(graph_t * g, edge_t * e)
 {
     int lnode, rnode, bounds[4], lpos, rpos, pos;
@@ -125,6 +173,12 @@ static int flat_limits(graph_t * g, edge_t * e)
 	pos = (bounds[HLB] + bounds[HRB] + 1) / 2;
     else
 	pos = (bounds[SLB] + bounds[SRB] + 1) / 2;
+    int lo = 0, hi = GD_rank(g)[r].n;
+    for (int i = 1; i <= GD_n_cluster(g); i++)
+	cluster_limits(g, GD_clust(g)[i], r + 1, lpos, rpos, &lo, &hi);
+    if (lo <= hi) {
+	pos = MIN(MAX(pos, lo), hi);
+    }
     return pos;
 }
 
