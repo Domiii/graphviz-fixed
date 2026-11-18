@@ -11,7 +11,6 @@
 #include "config.h"
 
 #include <assert.h>
-#include <float.h>
 #include <limits.h>
 #include <time.h>
 #include <dotgen/dot.h>
@@ -43,14 +42,10 @@ dot_init_subg(graph_t * g, graph_t* droot)
 
 
 static void 
-dot_init_node(node_t * n, Agsym_t *rankorder)
+dot_init_node(node_t * n)
 {
     agbindrec(n, "Agnodeinfo_t", sizeof(Agnodeinfo_t), true);	//graph custom data
     common_init_node(n);
-    if (rankorder && agxget(n, rankorder)[0] != '\0') {
-	ND_has_rankorder(n) = true;
-	ND_rankorder(n) = late_double(n, rankorder, 0, -DBL_MAX);
-    }
     gv_nodesize(n, GD_flip(agraphof(n)));
     alloc_elist(4, ND_in(n));
     alloc_elist(4, ND_out(n));
@@ -95,10 +90,9 @@ dot_init_node_edge(graph_t * g)
 {
     node_t *n;
     edge_t *e;
-    Agsym_t *const rankorder = agattr_text(g, AGNODE, "rankorder", NULL);
 
     for (n = agfstnode(g); n; n = agnxtnode(g, n))
-	dot_init_node(n, rankorder);
+	dot_init_node(n);
     for (n = agfstnode(g); n; n = agnxtnode(g, n)) {
 	for (e = agfstout(g, n); e; e = agnxtout(g, e))
 	    dot_init_edge(e);

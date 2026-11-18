@@ -1107,14 +1107,6 @@ Analogous criteria hold for <B>rank</B>="max" and <B>rank</B>="sink".
 (Note: the
 minimum rank is topmost or leftmost, and the maximum rank is bottommost
 or rightmost.)
-:rankorder:N:double:; dot
-Order of a node within its rank. Nodes that set <B>rankorder</B> are drawn
-in ascending <B>rankorder</B> (left to right, or top to bottom for
-<A HREF=#d:rankdir>rankdir</A>=LR or RL): crossing minimization never
-reverses two of them, and places the other nodes freely. A cluster is ordered
-by the least <B>rankorder</B> of its nodes. Applies within a connected
-component. Setting each node's <B>rankorder</B> to its coordinate in a
-previous layout keeps their order when the graph grows.
 :rankdir:G:rankdir:TB; dot
 Sets direction of graph layout. For example, if <B>rankdir</B>="LR",
 and barring cycles, an edge <CODE>T -> H;</CODE> will go

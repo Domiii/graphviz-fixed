@@ -340,21 +340,6 @@ void mark_clusters(graph_t * g)
     }
 }
 
-/* A cluster skeleton keeps its least member `rankorder`. */
-static void skeleton_rankorder(graph_t *subg) {
-    node_t *least = NULL;
-    for (node_t *v = agfstnode(subg); v; v = agnxtnode(subg, v)) {
-	if (ND_has_rankorder(v) && (!least || ND_rankorder(v) < ND_rankorder(least)))
-	    least = v;
-    }
-    if (!least)
-	return;
-    for (int r = GD_minrank(subg); r <= GD_maxrank(subg); r++) {
-	ND_has_rankorder(GD_rankleader(subg)[r]) = true;
-	ND_rankorder(GD_rankleader(subg)[r]) = ND_rankorder(least);
-    }
-}
-
 void build_skeleton(graph_t * g, graph_t * subg)
 {
     int r;
@@ -390,7 +375,6 @@ void build_skeleton(graph_t * g, graph_t * subg)
 	if (ND_UF_size(rl) > 1)
 	    ND_UF_size(rl)--;
     }
-    skeleton_rankorder(subg);
 }
 
 int install_cluster(graph_t *g, node_t *n, int pass, node_queue_t *q) {
