@@ -49,6 +49,9 @@ and this project adheres to
 - If routing produces bounding boxes that all have close-to-zero area, `dot`
   exits with an error message instead of crashing. #2773, #2774, #2776, #2778
 - A crash when using cluster subgraphs has been fixed. #2368, #2854
+- `dot` no longer fails with "trouble in init_rank" when a labelled flat edge
+  has an end inside a cluster: the label node is placed on the side of each
+  cluster that its edge's ends allow.
 
 ## [16.1.0] – 2026-09-03
 
