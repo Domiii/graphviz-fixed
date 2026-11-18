@@ -11,7 +11,6 @@
 #include "config.h"
 
 #include <assert.h>
-#include <float.h>
 #include <limits.h>
 #include <time.h>
 #include <dotgen/dot.h>
@@ -42,27 +41,11 @@ dot_init_subg(graph_t * g, graph_t* droot)
 }
 
 
-/// node attributes hinting the layout from a previous one
-typedef struct {
-    Agsym_t *rankorder;
-    Agsym_t *rankpos;
-} layout_hints_t;
-
-/// @return whether `n` sets `attr`; then its value in `*value`
-static bool hint(node_t *n, Agsym_t *attr, double *value) {
-    if (!attr || agxget(n, attr)[0] == '\0')
-	return false;
-    *value = late_double(n, attr, 0, -DBL_MAX);
-    return true;
-}
-
 static void 
-dot_init_node(node_t * n, const layout_hints_t *hints)
+dot_init_node(node_t * n)
 {
     agbindrec(n, "Agnodeinfo_t", sizeof(Agnodeinfo_t), true);	//graph custom data
     common_init_node(n);
-    ND_has_rankorder(n) = hint(n, hints->rankorder, &ND_rankorder(n));
-    ND_has_rankpos(n) = hint(n, hints->rankpos, &ND_rankpos(n));
     gv_nodesize(n, GD_flip(agraphof(n)));
     alloc_elist(4, ND_in(n));
     alloc_elist(4, ND_out(n));
@@ -107,13 +90,9 @@ dot_init_node_edge(graph_t * g)
 {
     node_t *n;
     edge_t *e;
-    const layout_hints_t hints = {
-	.rankorder = agattr_text(g, AGNODE, "rankorder", NULL),
-	.rankpos = agattr_text(g, AGNODE, "rankpos", NULL),
-    };
 
     for (n = agfstnode(g); n; n = agnxtnode(g, n))
-	dot_init_node(n, &hints);
+	dot_init_node(n);
     for (n = agfstnode(g); n; n = agnxtnode(g, n)) {
 	for (e = agfstout(g, n); e; e = agnxtout(g, e))
 	    dot_init_edge(e);
